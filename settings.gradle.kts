@@ -16,15 +16,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-
-        // Mapbox SDK — requires MAPBOX_DOWNLOADS_TOKEN=sk.eyJ1... in ~/.gradle/gradle.properties
         maven {
             url = uri("https://api.mapbox.com/downloads/v2/releases/maven")
-            authentication { create<HttpHeaderAuthentication>("header") }
-            credentials(HttpHeaderCredentials::class) {
-                name  = "Authorization"
-                value = "Token ${providers.gradleProperty("MAPBOX_DOWNLOADS_TOKEN").getOrElse("")}"
-            }
         }
     }
 }

@@ -1,4 +1,4 @@
-package net.tosak.here.ui.components
+package net.tosak.here.screens.mapscreen
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -8,23 +8,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
+import com.mapbox.maps.extension.compose.annotation.ViewAnnotation
 import com.mapbox.maps.extension.compose.style.MapStyle
 import com.mapbox.maps.plugin.gestures.gestures
-import com.mapbox.maps.viewannotation.ViewAnnotationAnchor
+import com.mapbox.maps.viewannotation.geometry
 import com.mapbox.maps.viewannotation.viewAnnotationOptions
 import net.tosak.here.model.Friend
 import net.tosak.here.model.YOU_LAT
 import net.tosak.here.model.YOU_LNG
+import net.tosak.here.ui.components.FriendMarkerView
 import net.tosak.here.ui.theme.HereTheme
 import net.tosak.here.ui.theme.*
 import kotlin.math.*
@@ -50,9 +49,9 @@ fun radiusToZoom(
     latitudeDeg: Double,
     screenWidthPx: Int,
 ): Double {
-    val desiredMPP       = radiusMeters / (screenWidthPx * RADIUS_FRACTION)
-    val earthCirc        = 40_075_016.686
-    val mppAtZoomZero    = earthCirc * cos(latitudeDeg * PI / 180.0) / 512.0
+    val desiredMPP    = radiusMeters / (screenWidthPx * RADIUS_FRACTION)
+    val earthCirc     = 40_075_016.686
+    val mppAtZoomZero = earthCirc * cos(latitudeDeg * PI / 180.0) / 512.0
     return log2(mppAtZoomZero / desiredMPP)
 }
 
@@ -68,9 +67,7 @@ fun SchematicMap(
     youLng: Double = YOU_LNG,
     radiusMeters: Double = 400.0,
 ) {
-    val context       = LocalContext.current
     val density       = LocalDensity.current
-    // Use actual screen width for zoom calculation
     val screenWidthPx = with(density) { 390.dp.roundToPx() }
 
     val zoom = remember(radiusMeters, youLat, screenWidthPx) {
@@ -86,12 +83,11 @@ fun SchematicMap(
         }
     }
 
-    // Stable ref so ViewAnnotation ComposeViews always call the current callback
+    // Stable ref so ViewAnnotation lambdas always call the current callback
     val onFriendTapRef = rememberUpdatedState(onFriendTap)
 
     Box(modifier = modifier) {
 
-        // ── Mapbox map (Compose extension) ────────────────────────────────
         MapboxMap(
             modifier         = Modifier.fillMaxSize(),
             mapViewportState = mapViewportState,
@@ -101,13 +97,13 @@ fun SchematicMap(
             // Lock all gestures on first composition
             MapEffect(Unit) { mapView ->
                 mapView.gestures.apply {
-                    scrollEnabled                         = false
-                    pinchToZoomEnabled                    = false
-                    rotateEnabled                         = false
-                    pitchEnabled                          = false
-                    doubleTapToZoomInEnabled              = false
-                    doubleTouchToZoomOutEnabled           = false
-                    quickZoomEnabled                      = false
+                    scrollEnabled                           = false
+                    pinchToZoomEnabled                      = false
+                    rotateEnabled                           = false
+                    pitchEnabled                            = false
+                    doubleTapToZoomInEnabled                = false
+                    doubleTouchToZoomOutEnabled             = false
+                    quickZoomEnabled                        = false
                     simultaneousRotateAndPinchToZoomEnabled = false
                 }
             }
@@ -122,36 +118,22 @@ fun SchematicMap(
                 )
             }
 
-            // Friend ViewAnnotations — rebuilt when visibility or list changes
-            MapEffect(showFriends, presenceOn, friends) { mapView ->
-                val vam = mapView.viewAnnotationManager
-                vam.removeAllViewAnnotations()
-
-                if (!showFriends || !presenceOn) return@MapEffect
-
+            // Friend markers — Compose-native ViewAnnotations
+            if (showFriends && presenceOn) {
                 friends.forEach { friend ->
-                    val composeView = ComposeView(context).apply {
-                        setViewCompositionStrategy(
-                            ViewCompositionStrategy.DisposeOnDetachedFromWindow
-                        )
-                        setContent {
-                            HereTheme {
-                                FriendMarkerView(
-                                    friend  = friend,
-                                    onClick = { onFriendTapRef.value(friend) },
-                                )
-                            }
-                        }
-                    }
-
-                    vam.addViewAnnotation(
-                        view    = composeView,
+                    ViewAnnotation(
                         options = viewAnnotationOptions {
                             geometry(Point.fromLngLat(friend.lng, friend.lat))
                             allowOverlap(true)
-                            anchor(ViewAnnotationAnchor.CENTER)
                         },
-                    )
+                    ) {
+                        HereTheme {
+                            FriendMarkerView(
+                                friend = friend,
+                                onClick = { onFriendTapRef.value(friend) },
+                            )
+                        }
+                    }
                 }
             }
         }

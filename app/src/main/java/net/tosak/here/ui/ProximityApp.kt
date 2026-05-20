@@ -13,13 +13,12 @@ import androidx.compose.ui.unit.sp
 import net.tosak.here.model.*
 import net.tosak.here.screens.ChatScreen
 import net.tosak.here.screens.ComposerScreen
-import net.tosak.here.screens.MapScreen
+import net.tosak.here.screens.mapscreen.MapScreen
 import net.tosak.here.screens.PingOverlay
 import net.tosak.here.screens.PostViewScreen
 import net.tosak.here.screens.PresenceScreen
 import net.tosak.here.screens.SettingsScreen
 import net.tosak.here.screens.onboarding.OnboardingScreen
-import net.tosak.here.screens.*
 import net.tosak.here.ui.theme.*
 
 @Composable

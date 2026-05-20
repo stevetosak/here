@@ -1,7 +1,7 @@
-package net.tosak.here.screens
+package net.tosak.here.screens.mapscreen
 
-import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -29,14 +29,16 @@ fun MapScreen(
     onFriend: (Friend) -> Unit,
     onSettings: () -> Unit,
 ) {
-    Box(modifier = Modifier.fillMaxSize().background(EmberBg)) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .windowInsetsPadding(WindowInsets.systemBars)
+        .background(EmberBg)) {
         // Schematic map fills the whole screen
         SchematicMap(
             presenceOn   = presenceOn,
             showFriends  = presenceOn && friendsVisible,
             friends      = friends,
             onFriendTap  = onFriend,
-            dim          = !presenceOn,
         )
 
         // HUD strip
@@ -44,15 +46,13 @@ fun MapScreen(
 
         // "Presence off" overlay
         if (!presenceOn) {
-            _root_ide_package_.net.tosak.here.screens.PresenceOffCurtain()
+            PresenceOffCurtain()
         }
 
         // Empty state poem (presence on, no friends)
         if (presenceOn && !friendsVisible) {
-            _root_ide_package_.net.tosak.here.screens.EmptyStatePoem(
-                modifier = Modifier.align(
-                    Alignment.Center
-                )
+            EmptyStatePoem(
+                modifier = Modifier.align(Alignment.Center)
             )
         }
 
@@ -68,7 +68,7 @@ fun MapScreen(
         }
 
         // Compass (bottom-left)
-        _root_ide_package_.net.tosak.here.screens.CompassRose(
+        CompassRose(
             modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 100.dp)
         )
 
@@ -148,7 +148,7 @@ private fun EmptyStatePoem(modifier: Modifier = Modifier) {
                 Box(
                     modifier = Modifier
                         .size(3.dp)
-                        .background(EmberMuted.copy(alpha = alpha), shape = androidx.compose.foundation.shape.CircleShape),
+                        .background(EmberMuted.copy(alpha = alpha), shape = CircleShape),
                 )
             }
         }
@@ -162,11 +162,11 @@ private fun CompassRose(modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        androidx.compose.foundation.Canvas(Modifier.size(38.dp)) {
+        Canvas(Modifier.size(38.dp)) {
             val cx = size.width / 2; val cy = size.height / 2; val r = size.width * 0.45f
-            drawCircle(color = EmberFg.copy(alpha = 0.35f), radius = r, center = androidx.compose.ui.geometry.Offset(cx, cy), style = Stroke(0.8f))
+            drawCircle(color = EmberFg.copy(alpha = 0.35f), radius = r, center = Offset(cx, cy), style = Stroke(0.8f))
             // North arrow
-            val path = androidx.compose.ui.graphics.Path().apply {
+            val path = Path().apply {
                 moveTo(cx, cy - r * 0.8f); lineTo(cx - size.width * 0.08f, cy); lineTo(cx, cy - size.width * 0.1f); lineTo(cx + size.width * 0.08f, cy); close()
             }
             drawPath(path, color = EmberFg)
