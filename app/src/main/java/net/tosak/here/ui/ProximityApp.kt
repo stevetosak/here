@@ -3,6 +3,7 @@ package net.tosak.here.ui
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,7 +51,7 @@ fun ProximityApp() {
 
     fun flashToast(msg: String) { toast = msg }
 
-    Box(modifier = Modifier.fillMaxSize().background(EmberBg)) {
+    Box(modifier = Modifier.fillMaxSize().background(EmberBg).imePadding()) {
         AnimatedContent(
             targetState   = screen,
             transitionSpec = { fadeIn() togetherWith fadeOut() },
