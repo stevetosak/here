@@ -92,6 +92,7 @@ fun SchematicMap(
             modifier         = Modifier.fillMaxSize(),
             mapViewportState = mapViewportState,
             style            = { MapStyle(style = STYLE_URL) },
+            scaleBar         = {},   // disable built-in scale bar
         ) {
 
             // Lock all gestures on first composition

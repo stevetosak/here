@@ -7,8 +7,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +33,7 @@ import net.tosak.here.model.YOU_LNG
 import net.tosak.here.ui.components.*
 import net.tosak.here.ui.theme.*
 import net.tosak.here.viewmodel.MapViewModel
+import kotlin.math.absoluteValue
 
 @Composable
 fun MapScreen(
@@ -38,6 +43,7 @@ fun MapScreen(
     onCompose: () -> Unit,
     onFriend: (Friend) -> Unit,
     onSettings: () -> Unit,
+    onChat: () -> Unit = {},
     viewModel: MapViewModel = hiltViewModel(),
 ) {
     val context      = LocalContext.current
@@ -53,31 +59,22 @@ fun MapScreen(
         if (granted) viewModel.startLocationUpdates()
     }
 
-    // Start updates when the screen enters composition; stop on exit.
     DisposableEffect(Unit) {
-        val fineGranted = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-
-        val coarseGranted = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+        val fineGranted   = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)   == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
         if (fineGranted || coarseGranted) {
             viewModel.startLocationUpdates()
         } else {
-            permissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                )
-            )
+            permissionLauncher.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+            ))
         }
 
         onDispose { viewModel.stopLocationUpdates() }
     }
 
-    // ── Resolved coordinates — real location, falling back to demo ───────────
     val youLat = userLocation?.latitude  ?: YOU_LAT
     val youLng = userLocation?.longitude ?: YOU_LNG
 
@@ -97,22 +94,20 @@ fun MapScreen(
             youLng      = youLng,
         )
 
-        HudStrip(presenceOn = presenceOn)
+        // ── Top toolbar ───────────────────────────────────────────────────────
+        MapTopBar(
+            presenceOn = presenceOn,
+            youLat     = youLat,
+            youLng     = youLng,
+            onSettings = onSettings,
+            onChat     = onChat,
+            modifier   = Modifier.align(Alignment.TopCenter),
+        )
 
         if (!presenceOn) PresenceOffCurtain()
 
         if (presenceOn && !friendsVisible) {
             EmptyStatePoem(modifier = Modifier.align(Alignment.Center))
-        }
-
-        if (presenceOn) {
-            PxButton(
-                text     = "⚙",
-                onClick  = onSettings,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 16.dp, top = 80.dp),
-            )
         }
 
         CompassRose(
@@ -121,6 +116,7 @@ fun MapScreen(
                 .padding(start = 16.dp, bottom = 100.dp),
         )
 
+        // Bottom action dock
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -138,12 +134,92 @@ fun MapScreen(
     }
 }
 
-// ── Private composables (unchanged from original) ────────────────────────────
+// ── Top toolbar ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun MapTopBar(
+    presenceOn: Boolean,
+    youLat: Double,
+    youLng: Double,
+    onSettings: () -> Unit,
+    onChat: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 14.dp, end = 14.dp, top = 12.dp),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        // ── Floating pill — action buttons only ───────────────────────────────
+        Row(
+            modifier = Modifier
+                .background(EmberBg.copy(alpha = 0.92f), RoundedCornerShape(6.dp))
+                .border(1.dp, EmberBorder, RoundedCornerShape(6.dp)),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ToolbarButton(label = "⚙  SETTINGS", onClick = onSettings)
+            // Vertical divider between buttons
+            Box(Modifier.width(1.dp).height(18.dp).background(EmberBorder))
+            ToolbarButton(label = "✉  MSGS", onClick = onChat)
+            // Future buttons: add Box(divider) + ToolbarButton() here
+        }
+
+        // ── Presence + coords — floating outside the pill ─────────────────────
+        Row(
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            StatusChip(presenceOn = presenceOn)
+            Mono(
+                text          = formatCoords(youLat, youLng),
+                size          = 8.sp,
+                color         = EmberMuted,
+                letterSpacing = 0.14.sp,
+            )
+        }
+    }
+}
+
+/** Borderless tap target inside the floating pill. */
+@Composable
+private fun ToolbarButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clickable(
+                indication        = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick           = onClick,
+            )
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Mono(label, size = 9.sp, color = EmberFg, letterSpacing = 0.20.sp)
+    }
+}
+
+/** Formats a WGS-84 coordinate pair as  41°59′N · 21°25′E */
+private fun formatCoords(lat: Double, lng: Double): String {
+    val latD   = lat.absoluteValue.toInt()
+    val latM   = ((lat.absoluteValue - latD) * 60).toInt()
+    val latDir = if (lat >= 0) "N" else "S"
+    val lngD   = lng.absoluteValue.toInt()
+    val lngM   = ((lng.absoluteValue - lngD) * 60).toInt()
+    val lngDir = if (lng >= 0) "E" else "W"
+    return "${latD}°${latM}′${latDir} · ${lngD}°${lngM}′${lngDir}"
+}
+
+// ── Private composables ───────────────────────────────────────────────────────
 
 @Composable
 private fun PresenceOffCurtain() {
     Box(
-        modifier = Modifier
+        modifier         = Modifier
             .fillMaxSize()
             .background(EmberBg.copy(alpha = 0.85f)),
         contentAlignment = Alignment.Center,
