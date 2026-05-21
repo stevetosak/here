@@ -23,7 +23,7 @@ import net.tosak.here.ui.theme.*
 import kotlin.math.PI
 
 /**
- * 3-second press-and-hold circle that animates a progress arc and triggers [onComplete].
+ * 1-second press-and-hold circle that animates a progress arc and triggers [onComplete].
  * Releasing early resets. Matches the design's HoldGesture component exactly.
  */
 @Composable
@@ -147,10 +147,12 @@ fun HoldGesture(
                 topLeft = Offset(cx - holdLabel.size.width / 2f, cy - holdLabel.size.height - 2f),
             )
 
+
+
             // ── Countdown "Xs" ────────────────────────────────────────────
-            val secondsLeft = (3 - (animatedProgress * 3).toInt()).coerceAtLeast(0)
+            val secondsLeft = (1 - (animatedProgress)).coerceAtLeast(0.0f)
             val countLabel = textMeasurer.measure(
-                AnnotatedString("${secondsLeft}s"),
+                AnnotatedString("%.2fs".format(secondsLeft)),
                 style = TextStyle(
                     fontFamily    = JetBrainsMono,
                     fontSize      = 9.sp,
@@ -165,7 +167,7 @@ fun HoldGesture(
         }
 
         Mono(
-            text          = "PRESS · HOLD 3 SECONDS",
+            text          = "PRESS · HOLD",
             size          = 9.sp,
             color         = EmberMuted,
             letterSpacing = 0.20.sp,
