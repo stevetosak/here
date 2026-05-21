@@ -74,6 +74,13 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
+
+    // Lifecycle — ViewModel + collectAsStateWithLifecycle
+    implementation(libs.androidx.lifecycle.runtime.compose)
+
+    // Location
+    implementation(libs.play.services.location)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

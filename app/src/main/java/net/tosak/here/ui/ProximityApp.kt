@@ -68,7 +68,6 @@ fun ProximityApp() {
                 AppScreen.MAP -> MapScreen(
                     presenceOn     = presenceOn,
                     friendsVisible = friendsVisible,
-                    friends        = sampleFriends,
                     onActivate     = { screen = AppScreen.PRESENCE },
                     onCompose      = { screen = AppScreen.COMPOSER },
                     onFriend       = { f ->

@@ -1,5 +1,9 @@
 package net.tosak.here.screens.mapscreen
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -12,51 +16,95 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.tosak.here.model.Friend
+import net.tosak.here.model.YOU_LAT
+import net.tosak.here.model.YOU_LNG
 import net.tosak.here.ui.components.*
 import net.tosak.here.ui.theme.*
+import net.tosak.here.viewmodel.MapViewModel
 
 @Composable
 fun MapScreen(
     presenceOn: Boolean,
     friendsVisible: Boolean,
-    friends: List<Friend>,
     onActivate: () -> Unit,
     onCompose: () -> Unit,
     onFriend: (Friend) -> Unit,
     onSettings: () -> Unit,
+    viewModel: MapViewModel = hiltViewModel(),
 ) {
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .windowInsetsPadding(WindowInsets.systemBars)
-        .background(EmberBg)) {
-        // Schematic map fills the whole screen
-        SchematicMap(
-            presenceOn   = presenceOn,
-            showFriends  = presenceOn && friendsVisible,
-            friends      = friends,
-            onFriendTap  = onFriend,
-        )
+    val context      = LocalContext.current
+    val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
+    val friends      by viewModel.friends.collectAsStateWithLifecycle()
 
-        // HUD strip
-        HudStrip(presenceOn = presenceOn)
+    // ── Runtime permission + location updates lifecycle ───────────────────────
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION]   == true ||
+                      permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) viewModel.startLocationUpdates()
+    }
 
-        // "Presence off" overlay
-        if (!presenceOn) {
-            PresenceOffCurtain()
-        }
+    // Start updates when the screen enters composition; stop on exit.
+    DisposableEffect(Unit) {
+        val fineGranted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
 
-        // Empty state poem (presence on, no friends)
-        if (presenceOn && !friendsVisible) {
-            EmptyStatePoem(
-                modifier = Modifier.align(Alignment.Center)
+        val coarseGranted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (fineGranted || coarseGranted) {
+            viewModel.startLocationUpdates()
+        } else {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                )
             )
         }
 
-        // Settings button (top-left, only when live)
+        onDispose { viewModel.stopLocationUpdates() }
+    }
+
+    // ── Resolved coordinates — real location, falling back to demo ───────────
+    val youLat = userLocation?.latitude  ?: YOU_LAT
+    val youLng = userLocation?.longitude ?: YOU_LNG
+
+    // ── UI ────────────────────────────────────────────────────────────────────
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.systemBars)
+            .background(EmberBg),
+    ) {
+        SchematicMap(
+            presenceOn  = presenceOn,
+            showFriends = presenceOn && friendsVisible,
+            friends     = friends,
+            onFriendTap = onFriend,
+            youLat      = youLat,
+            youLng      = youLng,
+        )
+
+        HudStrip(presenceOn = presenceOn)
+
+        if (!presenceOn) PresenceOffCurtain()
+
+        if (presenceOn && !friendsVisible) {
+            EmptyStatePoem(modifier = Modifier.align(Alignment.Center))
+        }
+
         if (presenceOn) {
             PxButton(
                 text     = "⚙",
@@ -67,12 +115,12 @@ fun MapScreen(
             )
         }
 
-        // Compass (bottom-left)
         CompassRose(
-            modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 100.dp)
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 16.dp, bottom = 100.dp),
         )
 
-        // Bottom action dock
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -84,11 +132,13 @@ fun MapScreen(
                 PxButton("＋ POST A MOMENT", onClick = onCompose, modifier = Modifier.weight(1f), primary = true)
                 PxButton("OFF", onClick = onActivate)
             } else {
-                PxButton("HOLD TO GO LIVE →", onClick = onActivate, modifier = Modifier.weight(1f), primary = true)
+                PxButton("GO LIVE →", onClick = onActivate, modifier = Modifier.weight(1f), primary = true)
             }
         }
     }
 }
+
+// ── Private composables (unchanged from original) ────────────────────────────
 
 @Composable
 private fun PresenceOffCurtain() {
@@ -118,7 +168,6 @@ private fun PresenceOffCurtain() {
 
 @Composable
 private fun EmptyStatePoem(modifier: Modifier = Modifier) {
-    // Shimmer dots
     val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
     Column(
         modifier            = modifier.padding(20.dp),
@@ -136,11 +185,11 @@ private fun EmptyStatePoem(modifier: Modifier = Modifier) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             repeat(4) { i ->
                 val alpha by infiniteTransition.animateFloat(
-                    initialValue  = 0.25f,
-                    targetValue   = 0.75f,
-                    animationSpec = infiniteRepeatable(
-                        animation     = tween(800),
-                        repeatMode    = RepeatMode.Reverse,
+                    initialValue       = 0.25f,
+                    targetValue        = 0.75f,
+                    animationSpec      = infiniteRepeatable(
+                        animation          = tween(800),
+                        repeatMode         = RepeatMode.Reverse,
                         initialStartOffset = StartOffset(i * 300),
                     ),
                     label = "dot$i",
@@ -158,16 +207,24 @@ private fun EmptyStatePoem(modifier: Modifier = Modifier) {
 @Composable
 private fun CompassRose(modifier: Modifier = Modifier) {
     Row(
-        modifier          = modifier,
-        verticalAlignment = Alignment.CenterVertically,
+        modifier              = modifier,
+        verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Canvas(Modifier.size(38.dp)) {
             val cx = size.width / 2; val cy = size.height / 2; val r = size.width * 0.45f
-            drawCircle(color = EmberFg.copy(alpha = 0.35f), radius = r, center = Offset(cx, cy), style = Stroke(0.8f))
-            // North arrow
+            drawCircle(
+                color  = EmberFg.copy(alpha = 0.35f),
+                radius = r,
+                center = Offset(cx, cy),
+                style  = Stroke(0.8f),
+            )
             val path = Path().apply {
-                moveTo(cx, cy - r * 0.8f); lineTo(cx - size.width * 0.08f, cy); lineTo(cx, cy - size.width * 0.1f); lineTo(cx + size.width * 0.08f, cy); close()
+                moveTo(cx, cy - r * 0.8f)
+                lineTo(cx - size.width * 0.08f, cy)
+                lineTo(cx, cy - size.width * 0.1f)
+                lineTo(cx + size.width * 0.08f, cy)
+                close()
             }
             drawPath(path, color = EmberFg)
         }
