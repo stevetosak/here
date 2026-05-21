@@ -1,5 +1,6 @@
 package net.tosak.here.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -24,7 +25,18 @@ import net.tosak.here.ui.theme.*
 
 @Composable
 fun ProximityApp() {
-    var screen       by remember { mutableStateOf(AppScreen.ONBOARDING) }
+    // ── Navigation stack ───────────────────────────────────────────────────────
+    // MAP is the root; ONBOARDING is replaced on completion so users can't swipe
+    // back into it. Any push/pop triggers recomposition via SnapshotStateList.
+    val navStack     = remember { mutableStateListOf(AppScreen.ONBOARDING) }
+    val currentScreen = navStack.last()
+
+    fun navigate(s: AppScreen) { navStack.add(s) }
+    fun goBack() { if (navStack.size > 1) navStack.removeLast() }
+
+    // System back button — disabled at the root (MAP / ONBOARDING)
+    BackHandler(enabled = navStack.size > 1) { goBack() }
+
     var presenceOn   by remember { mutableStateOf(false) }
     var handle       by remember { mutableStateOf("you") }
     var activeFriend by remember { mutableStateOf(sampleFriends[0]) }
@@ -36,8 +48,8 @@ fun ProximityApp() {
     var scenario     by remember { mutableStateOf("cluster") }
     val friendsVisible = scenario == "cluster" || scenario == "ping"
 
-    LaunchedEffect(scenario, screen) {
-        if (scenario == "ping" && screen == AppScreen.MAP) showPing = true
+    LaunchedEffect(scenario, currentScreen) {
+        if (scenario == "ping" && currentScreen == AppScreen.MAP) showPing = true
         else if (scenario != "ping") showPing = false
     }
 
@@ -51,9 +63,12 @@ fun ProximityApp() {
 
     fun flashToast(msg: String) { toast = msg }
 
-    Box(modifier = Modifier.fillMaxSize().background(EmberBg).imePadding()) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .windowInsetsPadding(WindowInsets.systemBars)
+        .background(EmberBg).imePadding()) {
         AnimatedContent(
-            targetState   = screen,
+            targetState   = currentScreen,
             transitionSpec = { fadeIn() togetherWith fadeOut() },
             label         = "screenTransition",
         ) { s ->
@@ -61,66 +76,68 @@ fun ProximityApp() {
                 AppScreen.ONBOARDING -> OnboardingScreen(
                     onDone = { name ->
                         handle = name
-                        screen = AppScreen.MAP
+                        // Clear onboarding from the stack so back never returns to it
+                        navStack.clear()
+                        navStack.add(AppScreen.MAP)
                         flashToast("READY · YOU ARE INVISIBLE")
                     },
                 )
                 AppScreen.MAP -> MapScreen(
                     presenceOn     = presenceOn,
                     friendsVisible = friendsVisible,
-                    onActivate     = { screen = AppScreen.PRESENCE },
-                    onCompose      = { screen = AppScreen.COMPOSER },
+                    onActivate     = { navigate(AppScreen.PRESENCE) },
+                    onCompose      = { navigate(AppScreen.COMPOSER) },
                     onFriend       = { f ->
                         activeFriend = f
-                        screen       = AppScreen.POST
+                        navigate(AppScreen.POST)
                         showPing     = false
                     },
-                    onSettings     = { screen = AppScreen.SETTINGS },
+                    onSettings     = { navigate(AppScreen.SETTINGS) },
                 )
                 AppScreen.PRESENCE -> PresenceScreen(
                     currentlyOn = presenceOn,
                     onActivated = { newOn ->
                         presenceOn = newOn
-                        screen     = AppScreen.MAP
+                        goBack()
                         flashToast(if (newOn) "PRESENCE ON · 400M · 2H" else "PRESENCE OFF · NOTHING REMAINS")
                     },
-                    onCancel    = { screen = AppScreen.MAP },
+                    onCancel    = { goBack() },
                 )
                 AppScreen.COMPOSER -> ComposerScreen(
-                    onClose  = { screen = AppScreen.MAP },
+                    onClose  = { goBack() },
                     onSubmit = { _, _ ->
-                        screen = AppScreen.MAP
+                        goBack()
                         flashToast("POSTED · EXPIRES 2H")
                     },
                 )
                 AppScreen.POST -> PostViewScreen(
                     friend  = activeFriend,
-                    onClose = { screen = AppScreen.MAP },
+                    onClose = { goBack() },
                     onChat  = { seed ->
                         chatSeed = seed
-                        screen   = AppScreen.CHAT
+                        navigate(AppScreen.CHAT)
                     },
                 )
                 AppScreen.CHAT -> ChatScreen(
                     friend     = activeFriend,
                     seedReply  = chatSeed,
-                    onClose    = { screen = AppScreen.MAP },
+                    onClose    = { goBack() },
                 )
                 AppScreen.SETTINGS -> SettingsScreen(
                     handle  = handle,
-                    onClose = { screen = AppScreen.MAP },
+                    onClose = { goBack() },
                 )
             }
         }
 
         // Ping overlay — on top of everything
-        if (showPing && screen == AppScreen.MAP) {
+        if (showPing && currentScreen == AppScreen.MAP) {
             PingOverlay(
                 friend    = sampleFriends[0],
                 onSee     = {
                     showPing     = false
                     activeFriend = sampleFriends[0]
-                    screen       = AppScreen.POST
+                    navigate(AppScreen.POST)
                 },
                 onDismiss = { showPing = false },
             )

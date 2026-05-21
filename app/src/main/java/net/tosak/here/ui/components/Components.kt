@@ -167,6 +167,27 @@ fun Rule(
     }
 }
 
+// ─── Global back button (top-left of secondary screens) ──────────────────────
+@Composable
+fun BackButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = "← BACK",
+) {
+    Box(
+        modifier = modifier
+            .clickable(
+                indication        = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick           = onClick,
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Mono(label, size = 10.sp, color = EmberFg, letterSpacing = 0.22.sp)
+    }
+}
+
 // ─── Tactical button ─────────────────────────────────────────────────────────
 @Composable
 fun PxButton(

@@ -32,10 +32,26 @@ fun SettingsScreen(
             .background(EmberBg)
             .verticalScroll(rememberScrollState()),
     ) {
-        HudStrip(presenceOn = true, minimal = true)
+        // ── Top bar with back button ───────────────────────────────────────────
+        Row(
+            modifier          = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BackButton(onClick = onClose)
+            Spacer(Modifier.weight(1f))
+            Mono(
+                text          = "SETTINGS",
+                size          = 9.sp,
+                color         = EmberMuted,
+                letterSpacing = 0.3.sp,
+                modifier      = Modifier.padding(end = 16.dp),
+            )
+        }
+
+        Rule()
 
         // Profile
-        Column(modifier = Modifier.padding(horizontal = 22.dp).padding(top = 52.dp, bottom = 14.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 22.dp).padding(top = 24.dp, bottom = 14.dp)) {
             Mono("YOU", size = 10.sp, color = EmberMuted, letterSpacing = 0.3.sp)
             Spacer(Modifier.height(4.dp))
             Text("@${handle.ifBlank { "you" }}", style = TextStyle(fontFamily = JetBrainsMono, fontSize = 26.sp, color = EmberFg))
@@ -84,11 +100,7 @@ fun SettingsScreen(
             }
         }
 
-        Spacer(Modifier.height(8.dp))
-        Box(modifier = Modifier.padding(horizontal = 22.dp, vertical = 8.dp).fillMaxWidth()) {
-            PxButton("← BACK TO MAP", onClick = onClose, modifier = Modifier.fillMaxWidth())
-        }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(32.dp))
     }
 }
 

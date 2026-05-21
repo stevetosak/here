@@ -82,7 +82,6 @@ fun MapScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.systemBars)
             .background(EmberBg),
     ) {
         SchematicMap(
