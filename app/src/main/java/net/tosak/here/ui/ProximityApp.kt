@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import net.tosak.here.auth.AuthViewModel
 import net.tosak.here.model.*
 import net.tosak.here.screens.ChatScreen
 import net.tosak.here.screens.ComposerScreen
@@ -25,10 +27,19 @@ import net.tosak.here.ui.theme.*
 
 @Composable
 fun ProximityApp() {
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val isAuthenticated by authViewModel.isAuthenticated.collectAsState()
+
     // ── Navigation stack ───────────────────────────────────────────────────────
-    // MAP is the root; ONBOARDING is replaced on completion so users can't swipe
-    // back into it. Any push/pop triggers recomposition via SnapshotStateList.
-    val navStack     = remember { mutableStateListOf(AppScreen.ONBOARDING) }
+    // Seed from auth state: authenticated users go straight to MAP; fresh
+    // installs (or after sign-out) start at ONBOARDING.
+    // ONBOARDING is cleared from the stack on completion so users can never
+    // swipe back into it.  Any push/pop triggers recomposition via SnapshotStateList.
+    val navStack = remember {
+        mutableStateListOf(
+            if (authViewModel.isAuthenticated.value) AppScreen.MAP else AppScreen.ONBOARDING
+        )
+    }
     val currentScreen = navStack.last()
 
     fun navigate(s: AppScreen) { navStack.add(s) }
@@ -37,8 +48,17 @@ fun ProximityApp() {
     // System back button — disabled at the root (MAP / ONBOARDING)
     BackHandler(enabled = navStack.size > 1) { goBack() }
 
+    // React to sign-out: reset the entire stack to ONBOARDING
+    LaunchedEffect(isAuthenticated) {
+        if (!isAuthenticated) {
+            navStack.clear()
+            navStack.add(AppScreen.ONBOARDING)
+        }
+    }
+
+    // Handle is seeded from the saved session on authenticated starts
+    var handle       by remember { mutableStateOf(authViewModel.savedHandle) }
     var presenceOn   by remember { mutableStateOf(false) }
-    var handle       by remember { mutableStateOf("you") }
     var activeFriend by remember { mutableStateOf(sampleFriends[0]) }
     var chatSeed     by remember { mutableStateOf<String?>(null) }
     var showPing     by remember { mutableStateOf(false) }
@@ -75,8 +95,10 @@ fun ProximityApp() {
             when (s) {
                 AppScreen.ONBOARDING -> OnboardingScreen(
                     onDone = { name ->
-                        handle = name
-                        // Clear onboarding from the stack so back never returns to it
+                        handle = name.ifBlank { "you" }
+                        // Persist the session so next launch skips onboarding
+                        authViewModel.saveSession(handle)
+                        // Replace onboarding with MAP as the stack root
                         navStack.clear()
                         navStack.add(AppScreen.MAP)
                         flashToast("READY · YOU ARE INVISIBLE")
@@ -124,8 +146,9 @@ fun ProximityApp() {
                     onClose    = { goBack() },
                 )
                 AppScreen.SETTINGS -> SettingsScreen(
-                    handle  = handle,
-                    onClose = { goBack() },
+                    handle    = handle,
+                    onClose   = { goBack() },
+                    onSignOut = { authViewModel.signOut() },
                 )
             }
         }

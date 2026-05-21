@@ -22,6 +22,7 @@ import net.tosak.here.ui.theme.*
 fun SettingsScreen(
     handle: String,
     onClose: () -> Unit,
+    onSignOut: () -> Unit,
 ) {
     var haptic by remember { mutableStateOf(true) }
     var sound  by remember { mutableStateOf(false) }
@@ -77,6 +78,26 @@ fun SettingsScreen(
             SettingToggle("Haptic on ping", null, haptic, { haptic = it })
             SettingToggle("Sound on ping", null, sound, { sound = it })
             SettingRow("Quiet hours", "00:00 – 08:00", "pings silenced while you sleep")
+
+            Spacer(Modifier.height(20.dp))
+            // Session
+            Mono("SESSION", size = 10.sp, color = EmberMuted, letterSpacing = 0.3.sp)
+            Spacer(Modifier.height(8.dp))
+            SettingRow("Auth token", "on device", "uuid stored in shared prefs. never leaves the device.")
+            Spacer(Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, EmberFg)
+                    .clickable(
+                        indication        = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick           = onSignOut,
+                    )
+                    .padding(14.dp),
+            ) {
+                Mono("↳ SIGN OUT", size = 11.sp, letterSpacing = 0.22.sp)
+            }
 
             Spacer(Modifier.height(20.dp))
             // Data
