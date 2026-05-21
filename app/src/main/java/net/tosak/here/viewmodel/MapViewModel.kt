@@ -63,8 +63,12 @@ class MapViewModel @Inject constructor(
     // Permission is verified by the caller (MapScreen) before this is invoked.
     @SuppressLint("MissingPermission")
     fun startLocationUpdates() {
-        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3_000L)
-            .setMinUpdateIntervalMillis(1_500L)
+        val request = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 10_000L)
+            .setMinUpdateIntervalMillis(5_000L)
+            // Only emit a new fix if the device has physically moved ≥ 15 m.
+            // Filters out GPS noise and sub-block drift that would otherwise
+            // cause the map marker to jitter while the user is standing still.
+            .setMinUpdateDistanceMeters(15f)
             .build()
 
         fusedLocationClient.requestLocationUpdates(
