@@ -43,6 +43,7 @@ fun MapScreen(
     onCompose: () -> Unit,
     onFriend: (Friend) -> Unit,
     onSettings: () -> Unit,
+    onHandshake: () -> Unit = {},
     onChat: () -> Unit = {},
     viewModel: MapViewModel = hiltViewModel(),
 ) {
@@ -115,19 +116,35 @@ fun MapScreen(
                 .padding(start = 16.dp, bottom = 100.dp),
         )
 
-        // Bottom action dock
-        Row(
+        // ── Bottom bar ────────────────────────────────────────────────────────
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 22.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                .background(EmberBg),
         ) {
-            if (presenceOn) {
-                PxButton("＋ POST A MOMENT", onClick = onCompose, modifier = Modifier.weight(1f), primary = true)
-                PxButton("OFF", onClick = onActivate)
-            } else {
-                PxButton("GO LIVE →", onClick = onActivate, modifier = Modifier.weight(1f), primary = true)
+            Rule()
+            Column(
+                modifier            = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // Primary presence action
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (presenceOn) {
+                        PxButton("＋ POST A MOMENT", onClick = onCompose, modifier = Modifier.weight(1f), primary = true)
+                        PxButton("OFF", onClick = onActivate)
+                    } else {
+                        PxButton("GO LIVE →", onClick = onActivate, modifier = Modifier.weight(1f), primary = true)
+                    }
+                }
+                // Connect — always present, secondary
+                PxButton(
+                    text     = "⬡  CONNECT",
+                    onClick  = onHandshake,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
@@ -143,6 +160,7 @@ private fun MapTopBar(
     onSettings: () -> Unit,
     onChat: () -> Unit,
     modifier: Modifier = Modifier,
+    // onHandshake handled by bottom dock; toolbar only has settings + msgs
 ) {
     Row(
         modifier = modifier

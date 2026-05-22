@@ -6,6 +6,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.content.edit
+import net.tosak.here.storage.AppStorage
+import net.tosak.here.storage.AppStorage.Companion.KEY_HANDLE
+import net.tosak.here.storage.AppStorage.Companion.KEY_TOKEN
 
 /**
  * Thin SharedPreferences wrapper that simulates a server-issued token.
@@ -19,38 +23,31 @@ import javax.inject.Singleton
  */
 @Singleton
 class AuthRepository @Inject constructor(
-    @ApplicationContext context: Context,
+    val appStorage: AppStorage
 ) {
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
     /** True when a token is present on disk. */
     val isAuthenticated: Boolean
-        get() = prefs.getString(KEY_TOKEN, null) != null
+        get() = appStorage.prefs.getString(KEY_TOKEN, null) != null
 
     /** The handle saved during onboarding; falls back to "you" if absent. */
     val handle: String
-        get() = prefs.getString(KEY_HANDLE, "you") ?: "you"
+        get() = appStorage.prefs.getString(KEY_HANDLE, "you") ?: "you"
 
     /**
      * Persist a new session.  Generates a fresh UUID token each time so a
      * re-onboard creates a distinct session rather than reusing the old one.
      */
     fun saveSession(handle: String) {
-        prefs.edit()
-            .putString(KEY_TOKEN, UUID.randomUUID().toString())
-            .putString(KEY_HANDLE, handle.ifBlank { "you" })
-            .apply()
+        appStorage.prefs.edit {
+            putString(KEY_TOKEN, UUID.randomUUID().toString())
+                .putString(KEY_HANDLE, handle.ifBlank { "you" })
+        }
     }
 
     /** Wipe everything — equivalent to signing out. */
     fun clearSession() {
-        prefs.edit().clear().apply()
+        appStorage.prefs.edit { clear() }
     }
 
-    companion object {
-        private const val PREFS_NAME = "here_auth"
-        private const val KEY_TOKEN  = "auth_token"
-        private const val KEY_HANDLE = "user_handle"
-    }
+
 }

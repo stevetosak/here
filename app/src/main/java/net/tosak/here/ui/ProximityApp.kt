@@ -22,6 +22,9 @@ import net.tosak.here.screens.PingOverlay
 import net.tosak.here.screens.PostViewScreen
 import net.tosak.here.screens.PresenceScreen
 import net.tosak.here.screens.SettingsScreen
+import net.tosak.here.screens.handshake.HandshakeScreen
+import net.tosak.here.screens.handshake.MementoScreen
+import net.tosak.here.screens.handshake.viewmodel.MementoData
 import net.tosak.here.screens.onboarding.OnboardingScreen
 import net.tosak.here.ui.theme.*
 
@@ -43,7 +46,7 @@ fun ProximityApp() {
     val currentScreen = navStack.last()
 
     fun navigate(s: AppScreen) { navStack.add(s) }
-    fun goBack() { if (navStack.size > 1) navStack.removeLast() }
+    fun goBack() { if (navStack.size > 1) navStack.removeAt(navStack.lastIndex) }
 
     // System back button — disabled at the root (MAP / ONBOARDING)
     BackHandler(enabled = navStack.size > 1) { goBack() }
@@ -57,12 +60,13 @@ fun ProximityApp() {
     }
 
     // Handle is seeded from the saved session on authenticated starts
-    var handle       by remember { mutableStateOf(authViewModel.savedHandle) }
-    var presenceOn   by remember { mutableStateOf(false) }
-    var activeFriend by remember { mutableStateOf(sampleFriends[0]) }
-    var chatSeed     by remember { mutableStateOf<String?>(null) }
-    var showPing     by remember { mutableStateOf(false) }
-    var toast        by remember { mutableStateOf<String?>(null) }
+    var handle         by remember { mutableStateOf(authViewModel.savedHandle) }
+    var presenceOn     by remember { mutableStateOf(false) }
+    var activeFriend   by remember { mutableStateOf(sampleFriends[0]) }
+    var chatSeed       by remember { mutableStateOf<String?>(null) }
+    var showPing       by remember { mutableStateOf(false) }
+    var toast          by remember { mutableStateOf<String?>(null) }
+    var pendingMemento by remember { mutableStateOf<MementoData?>(null) }
 
     // Scenario: empty | cluster | ping (mirror of design prototype)
     var scenario     by remember { mutableStateOf("cluster") }
@@ -115,6 +119,7 @@ fun ProximityApp() {
                         showPing     = false
                     },
                     onSettings     = { navigate(AppScreen.SETTINGS) },
+                    onHandshake    = { navigate(AppScreen.HANDSHAKE) },
                 )
                 AppScreen.PRESENCE -> PresenceScreen(
                     currentlyOn = presenceOn,
@@ -150,6 +155,31 @@ fun ProximityApp() {
                     onClose   = { goBack() },
                     onSignOut = { authViewModel.signOut() },
                 )
+                AppScreen.HANDSHAKE -> HandshakeScreen(
+                    onConfirmed = { memento ->
+                        pendingMemento = memento
+                        // Replace HANDSHAKE with MEMENTO in the stack so back
+                        // from Memento returns to MAP, not back to HandshakeScreen.
+                        navStack.removeAt(navStack.lastIndex)
+                        navStack.add(AppScreen.MEMENTO)
+                    },
+                    onBack = { goBack() },
+                )
+                AppScreen.MEMENTO -> {
+                    val memento = pendingMemento
+                    if (memento != null) {
+                        MementoScreen(
+                            memento    = memento,
+                            onContinue = {
+                                pendingMemento = null
+                                // Pop back to MAP, clearing MEMENTO from the stack
+                                navStack.clear()
+                                navStack.add(AppScreen.MAP)
+                                flashToast("CONNECTED · SAVED TO MOMENTS")
+                            },
+                        )
+                    }
+                }
             }
         }
 

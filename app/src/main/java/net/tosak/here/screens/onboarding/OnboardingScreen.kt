@@ -1,5 +1,4 @@
 package net.tosak.here.screens.onboarding
-
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,10 +15,12 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import net.tosak.here.screens.onboarding.STEPS
 import net.tosak.here.screens.onboarding.components.AuthEmailStep
 import net.tosak.here.screens.onboarding.components.AuthVerifyStep
 import net.tosak.here.screens.onboarding.components.InfoStepBody
 import net.tosak.here.screens.onboarding.data.OnboardStep
+import net.tosak.here.screens.onboarding.looksLikeEmail
 import net.tosak.here.ui.components.*
 import net.tosak.here.ui.theme.*
 
@@ -52,7 +53,7 @@ private fun String.looksLikeEmail() = contains('@') && lastIndexOf('.') > indexO
 @Composable
 fun OnboardingScreen(onDone: (String) -> Unit) {
 
-    var phase       by remember { mutableStateOf(OnboardPhase.INFO) }
+    var phase       by remember { mutableStateOf(net.tosak.here.screens.onboarding.OnboardPhase.INFO) }
     var step        by remember { mutableIntStateOf(0) }
     var email       by remember { mutableStateOf("") }
     var code        by remember { mutableStateOf("") }
