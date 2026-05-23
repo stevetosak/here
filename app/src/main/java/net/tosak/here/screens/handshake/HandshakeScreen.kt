@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -129,6 +130,14 @@ fun HandshakeScreen(
         if (state is HandshakeState.Confirmed) showWave = true
     }
 
+    // Alpha-driven visibility for top content — keeps it in the layout so the
+    // button never shifts position when the content disappears.
+    val topAlpha by animateFloatAsState(
+        targetValue   = if (state == HandshakeState.Idle) 1f else 0f,
+        animationSpec = tween(durationMillis = 260),
+        label         = "topContentAlpha",
+    )
+
     // ── UI root ───────────────────────────────────────────────────────────────
 
     Box(
@@ -143,7 +152,12 @@ fun HandshakeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
 
-            if(state == HandshakeState.Idle){
+            // Always in layout so the button never shifts — only the alpha changes
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(topAlpha),
+            ) {
                 Row(
                     modifier              = Modifier
                         .fillMaxWidth()
