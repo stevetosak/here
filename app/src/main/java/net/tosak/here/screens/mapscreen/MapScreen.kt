@@ -33,6 +33,9 @@ import net.tosak.here.shared.model.YOU_LNG
 import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
 import net.tosak.here.screens.mapscreen.viewmodel.MapViewModel
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.ui.unit.DpOffset
 import kotlin.math.absoluteValue
 
 @Composable
@@ -160,8 +163,9 @@ private fun MapTopBar(
     onSettings: () -> Unit,
     onChat: () -> Unit,
     modifier: Modifier = Modifier,
-    // onHandshake handled by bottom dock; toolbar only has settings + msgs
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -169,21 +173,47 @@ private fun MapTopBar(
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        // ── Floating pill — action buttons only ───────────────────────────────
-        Row(
-            modifier = Modifier
-                .background(EmberBg.copy(alpha = 0.92f))
-                .border(1.dp, EmberBorder),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ToolbarButton(label = "⚙  SETTINGS", onClick = onSettings)
-            // Vertical divider between buttons
-            Box(Modifier.width(1.dp).height(18.dp).background(EmberBorder))
-            ToolbarButton(label = "✉  MSGS", onClick = onChat)
-            // Future buttons: add Box(divider) + ToolbarButton() here
+        // ── Menu toggle + dropdown ────────────────────────────────────────────
+        Box {
+            // Single pill toggle
+            Box(
+                modifier = Modifier
+                    .background(EmberBg.copy(alpha = 0.92f))
+                    .border(1.dp, if (menuExpanded) EmberFg.copy(alpha = 0.45f) else EmberBorder)
+                    .clickable(
+                        indication        = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                    ) { menuExpanded = !menuExpanded }
+                    .padding(horizontal = 14.dp, vertical = 9.dp),
+            ) {
+                Mono(
+                    text          = "☰",
+                    size          = 12.sp,
+                    color         = if (menuExpanded) EmberFg else EmberFg.copy(alpha = 0.65f),
+                    letterSpacing = 0.sp,
+                )
+            }
+
+            // Dropdown
+            DropdownMenu(
+                expanded         = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+                offset           = DpOffset(x = 0.dp, y = 4.dp),
+                shape            = RoundedCornerShape(0.dp),
+                containerColor   = EmberBg,
+                tonalElevation   = 0.dp,
+                shadowElevation  = 0.dp,
+                border           = BorderStroke(1.dp, EmberBorder),
+                modifier         = Modifier.widthIn(min = 160.dp),
+            ) {
+                MapMenuItem(label = "⚙  SETTINGS") { menuExpanded = false; onSettings() }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(EmberBorder))
+                MapMenuItem(label = "✉  MSGS")     { menuExpanded = false; onChat() }
+                // ── Add future menu items here, separated by a Box(…) divider ──
+            }
         }
 
-        // ── Presence + coords — floating outside the pill ─────────────────────
+        // ── Presence chip + coords ────────────────────────────────────────────
         Row(
             verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -199,22 +229,19 @@ private fun MapTopBar(
     }
 }
 
-/** Borderless tap target inside the floating pill. */
+/** Single row inside the [MapTopBar] dropdown. */
 @Composable
-private fun ToolbarButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun MapMenuItem(label: String, onClick: () -> Unit) {
     Box(
-        modifier = modifier
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(EmberBg)
             .clickable(
                 indication        = null,
                 interactionSource = remember { MutableInteractionSource() },
                 onClick           = onClick,
             )
-            .padding(horizontal = 12.dp, vertical = 9.dp),
-        contentAlignment = Alignment.Center,
+            .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
         Mono(label, size = 9.sp, color = EmberFg, letterSpacing = 0.20.sp)
     }
