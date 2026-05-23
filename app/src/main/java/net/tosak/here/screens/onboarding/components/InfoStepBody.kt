@@ -14,7 +14,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.tosak.here.screens.onboarding.data.OnboardStep
-import net.tosak.here.ui.components.Mono
+import net.tosak.here.shared.components.Mono
 import net.tosak.here.ui.theme.EmberAccent
 import net.tosak.here.ui.theme.EmberFg
 import net.tosak.here.ui.theme.EmberMuted

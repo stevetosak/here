@@ -1,4 +1,4 @@
-package net.tosak.here.screens
+package net.tosak.here.screens.composer
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,8 +16,8 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.tosak.here.model.PostKind
-import net.tosak.here.ui.components.*
+import net.tosak.here.shared.model.PostKind
+import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
 import kotlin.math.abs
 import kotlin.math.sin
@@ -59,23 +59,11 @@ fun ComposerScreen(onClose: () -> Unit, onSubmit: (PostKind, String) -> Unit) {
         // Kind picker
         if (kind == null) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-                _root_ide_package_.net.tosak.here.screens.KindCard(
-                    "PHOTO",
-                    "A frame from where you are.",
-                    "◯"
-                ) { kind = PostKind.PHOTO }
+                KindCard("PHOTO", "A frame from where you are.", "◯") { kind = PostKind.PHOTO }
                 Spacer(Modifier.height(12.dp))
-                _root_ide_package_.net.tosak.here.screens.KindCard(
-                    "TEXT",
-                    "140 characters. A line, a thought, a question.",
-                    "—"
-                ) { kind = PostKind.TEXT }
+                KindCard("TEXT", "140 characters. A line, a thought, a question.", "—") { kind = PostKind.TEXT }
                 Spacer(Modifier.height(12.dp))
-                _root_ide_package_.net.tosak.here.screens.KindCard(
-                    "VOICE",
-                    "30 seconds. A sound from the room.",
-                    "◖"
-                ) { kind = PostKind.VOICE }
+                KindCard("VOICE", "30 seconds. A sound from the room.", "◖") { kind = PostKind.VOICE }
             }
         }
 

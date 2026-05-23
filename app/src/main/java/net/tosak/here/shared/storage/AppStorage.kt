@@ -1,9 +1,10 @@
-package net.tosak.here.storage
+package net.tosak.here.shared.storage
 
 import android.content.Context
 import android.content.SharedPreferences
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+
 
 class AppStorage @Inject constructor(@ApplicationContext context: Context) {
 
@@ -14,6 +15,6 @@ class AppStorage @Inject constructor(@ApplicationContext context: Context) {
         private const val PREFS_NAME = "here_storage"
         const val KEY_TOKEN = "auth_token"
         const val KEY_HANDLE = "user_handle"
-        const val KEY_PRESENCE = "presence"
+        const val KEY_PRESENCE_ENABLED = "presence_enabled"
     }
 }

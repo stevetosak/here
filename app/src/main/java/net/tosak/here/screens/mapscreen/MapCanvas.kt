@@ -20,10 +20,10 @@ import com.mapbox.maps.extension.compose.style.MapStyle
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.viewannotation.geometry
 import com.mapbox.maps.viewannotation.viewAnnotationOptions
-import net.tosak.here.model.Friend
-import net.tosak.here.model.YOU_LAT
-import net.tosak.here.model.YOU_LNG
-import net.tosak.here.ui.components.FriendMarkerView
+import net.tosak.here.shared.model.Friend
+import net.tosak.here.shared.model.YOU_LAT
+import net.tosak.here.shared.model.YOU_LNG
+import net.tosak.here.shared.components.FriendMarkerView
 import net.tosak.here.ui.theme.HereTheme
 import net.tosak.here.ui.theme.*
 import kotlin.math.*

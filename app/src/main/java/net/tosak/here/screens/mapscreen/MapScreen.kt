@@ -27,12 +27,12 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import net.tosak.here.model.Friend
-import net.tosak.here.model.YOU_LAT
-import net.tosak.here.model.YOU_LNG
-import net.tosak.here.ui.components.*
+import net.tosak.here.shared.model.Friend
+import net.tosak.here.shared.model.YOU_LAT
+import net.tosak.here.shared.model.YOU_LNG
+import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
-import net.tosak.here.viewmodel.MapViewModel
+import net.tosak.here.screens.mapscreen.viewmodel.MapViewModel
 import kotlin.math.absoluteValue
 
 @Composable
@@ -172,8 +172,8 @@ private fun MapTopBar(
         // ── Floating pill — action buttons only ───────────────────────────────
         Row(
             modifier = Modifier
-                .background(EmberBg.copy(alpha = 0.92f), RoundedCornerShape(6.dp))
-                .border(1.dp, EmberBorder, RoundedCornerShape(6.dp)),
+                .background(EmberBg.copy(alpha = 0.92f))
+                .border(1.dp, EmberBorder),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ToolbarButton(label = "⚙  SETTINGS", onClick = onSettings)

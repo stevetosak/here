@@ -7,21 +7,23 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import net.tosak.here.auth.AuthViewModel
-import net.tosak.here.model.*
-import net.tosak.here.screens.ChatScreen
-import net.tosak.here.screens.ComposerScreen
+import net.tosak.here.shared.auth.AuthViewModel
+import net.tosak.here.shared.model.*
+import net.tosak.here.screens.chat.ChatScreen
+import net.tosak.here.screens.composer.ComposerScreen
 import net.tosak.here.screens.mapscreen.MapScreen
-import net.tosak.here.screens.PingOverlay
-import net.tosak.here.screens.PostViewScreen
-import net.tosak.here.screens.PresenceScreen
-import net.tosak.here.screens.SettingsScreen
+import net.tosak.here.screens.ping.PingOverlay
+import net.tosak.here.screens.post.PostViewScreen
+import net.tosak.here.screens.presence.PresenceScreen
+import net.tosak.here.screens.presence.viewmodel.PresenceViewModel
+import net.tosak.here.screens.settings.SettingsScreen
 import net.tosak.here.screens.handshake.HandshakeScreen
 import net.tosak.here.screens.handshake.MementoScreen
 import net.tosak.here.screens.handshake.viewmodel.MementoData
@@ -33,6 +35,7 @@ import net.tosak.here.ui.theme.*
 fun ProximityApp() {
     val authViewModel: AuthViewModel = hiltViewModel()
     val nav: NavigationViewModel = hiltViewModel()
+    val presenceViewModel: PresenceViewModel = hiltViewModel()
 
     // System back button — disabled at the root (MAP / ONBOARDING)
     BackHandler(enabled = nav.backStack.size > 1) { nav.goBack() }
@@ -40,7 +43,7 @@ fun ProximityApp() {
 
     // Handle is seeded from the saved session on authenticated starts
     var handle         by remember { mutableStateOf(authViewModel.savedHandle) }
-    var presenceOn     by remember { mutableStateOf(false) }
+    val presenceOn     by presenceViewModel.presenceOn.collectAsStateWithLifecycle()
     var activeFriend   by remember { mutableStateOf(sampleFriends[0]) }
     var chatSeed       by remember { mutableStateOf<String?>(null) }
     var showPing       by remember { mutableStateOf(false) }
@@ -102,8 +105,9 @@ fun ProximityApp() {
                 AppScreen.PRESENCE -> PresenceScreen(
                     currentlyOn = presenceOn,
                     onActivated = { newOn ->
-                        presenceOn = newOn
+                        presenceViewModel.setPresence(newOn)
                         nav.goBack()
+
                         flashToast(if (newOn) "PRESENCE ON · 400M · 2H" else "PRESENCE OFF · NOTHING REMAINS")
                     },
                     onCancel    = { nav.goBack() },

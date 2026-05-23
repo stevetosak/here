@@ -1,4 +1,4 @@
-package net.tosak.here.ui.components
+package net.tosak.here.shared.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -15,8 +15,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.tosak.here.model.Friend
-import net.tosak.here.model.FriendStatus
+import net.tosak.here.shared.model.Friend
+import net.tosak.here.shared.model.FriendStatus
 import net.tosak.here.ui.theme.*
 
 /**

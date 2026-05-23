@@ -20,7 +20,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.tosak.here.ui.components.Mono
+import net.tosak.here.shared.components.Mono
 import net.tosak.here.ui.theme.*
 
 @Composable

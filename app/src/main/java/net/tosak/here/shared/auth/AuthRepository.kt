@@ -1,4 +1,4 @@
-package net.tosak.here.auth
+package net.tosak.here.shared.auth
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -10,9 +10,9 @@ import androidx.core.content.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import net.tosak.here.storage.AppStorage
-import net.tosak.here.storage.AppStorage.Companion.KEY_HANDLE
-import net.tosak.here.storage.AppStorage.Companion.KEY_TOKEN
+import net.tosak.here.shared.storage.AppStorage
+import net.tosak.here.shared.storage.AppStorage.Companion.KEY_HANDLE
+import net.tosak.here.shared.storage.AppStorage.Companion.KEY_TOKEN
 
 /**
  * Thin SharedPreferences wrapper that simulates a server-issued token.
@@ -58,6 +58,4 @@ class AuthRepository @Inject constructor(
         appStorage.prefs.edit { clear() }
         _isAuthenticatedFlow.value = false
     }
-
-
 }

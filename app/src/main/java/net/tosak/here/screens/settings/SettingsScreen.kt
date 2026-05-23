@@ -1,4 +1,4 @@
-package net.tosak.here.screens
+package net.tosak.here.screens.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.tosak.here.ui.components.*
+import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
 
 @Composable

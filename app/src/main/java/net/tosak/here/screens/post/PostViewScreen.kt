@@ -1,4 +1,4 @@
-package net.tosak.here.screens
+package net.tosak.here.screens.post
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,9 +16,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.tosak.here.model.Friend
-import net.tosak.here.model.PostKind
-import net.tosak.here.ui.components.*
+import net.tosak.here.shared.model.Friend
+import net.tosak.here.shared.model.PostKind
+import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
 
 @Composable

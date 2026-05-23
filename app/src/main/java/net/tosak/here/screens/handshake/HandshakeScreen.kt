@@ -41,10 +41,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.tosak.here.screens.handshake.viewmodel.HandshakeState
 import net.tosak.here.screens.handshake.viewmodel.HandshakeViewModel
 import net.tosak.here.screens.handshake.viewmodel.MementoData
-import net.tosak.here.ui.components.BackButton
-import net.tosak.here.ui.components.Mono
-import net.tosak.here.ui.components.PxButton
-import net.tosak.here.ui.components.Rule
+import net.tosak.here.shared.components.BackButton
+import net.tosak.here.shared.components.Mono
+import net.tosak.here.shared.components.PxButton
+import net.tosak.here.shared.components.Rule
 import net.tosak.here.ui.theme.*
 
 /**

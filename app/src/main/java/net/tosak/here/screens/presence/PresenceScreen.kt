@@ -1,4 +1,4 @@
-package net.tosak.here.screens
+package net.tosak.here.screens.presence
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.tosak.here.ui.components.*
+import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
 
 @Composable

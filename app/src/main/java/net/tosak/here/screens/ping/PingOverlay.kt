@@ -1,4 +1,4 @@
-package net.tosak.here.screens
+package net.tosak.here.screens.ping
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -14,8 +14,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.tosak.here.model.Friend
-import net.tosak.here.ui.components.*
+import net.tosak.here.shared.model.Friend
+import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
 
 /**

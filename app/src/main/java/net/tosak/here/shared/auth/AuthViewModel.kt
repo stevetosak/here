@@ -1,4 +1,4 @@
-package net.tosak.here.auth
+package net.tosak.here.shared.auth
 
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel

@@ -1,4 +1,4 @@
-package net.tosak.here.viewmodel
+package net.tosak.here.screens.mapscreen.viewmodel
 
 import android.annotation.SuppressLint
 import android.location.Location
@@ -20,10 +20,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import net.tosak.here.model.Friend
-import net.tosak.here.model.YOU_LAT
-import net.tosak.here.model.YOU_LNG
-import net.tosak.here.model.anchoredSampleFriends
+import net.tosak.here.shared.model.Friend
+import net.tosak.here.shared.model.YOU_LAT
+import net.tosak.here.shared.model.YOU_LNG
+import net.tosak.here.shared.model.anchoredSampleFriends
 import javax.inject.Inject
 
 @HiltViewModel

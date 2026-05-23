@@ -1,4 +1,4 @@
-package net.tosak.here.model
+package net.tosak.here.shared.model
 
 data class FriendPost(
     val kind: PostKind,

@@ -1,4 +1,4 @@
-package net.tosak.here.ui.components
+package net.tosak.here.shared.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -146,8 +146,6 @@ fun HoldGesture(
                 holdLabel,
                 topLeft = Offset(cx - holdLabel.size.width / 2f, cy - holdLabel.size.height - 2f),
             )
-
-
 
             // ── Countdown "Xs" ────────────────────────────────────────────
             val secondsLeft = (1 - (animatedProgress)).coerceAtLeast(0.0f)

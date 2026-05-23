@@ -6,8 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import net.tosak.here.auth.AuthRepository
-import net.tosak.here.model.AppScreen
+import net.tosak.here.shared.auth.AuthRepository
+import net.tosak.here.shared.model.AppScreen
 import javax.inject.Inject
 
 /**

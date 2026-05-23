@@ -1,4 +1,4 @@
-package net.tosak.here.ui.components
+package net.tosak.here.shared.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.border
