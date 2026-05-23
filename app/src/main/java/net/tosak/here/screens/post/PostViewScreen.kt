@@ -104,32 +104,6 @@ fun PostViewScreen(
                         modifier = Modifier.padding(vertical = 12.dp),
                     )
                 }
-                PostKind.VOICE -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, EmberFg.copy(alpha = 0.33f))
-                            .padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Mono("VOICE · 0:18", size = 10.sp, color = EmberMuted)
-                        Row(
-                            modifier         = Modifier.fillMaxWidth().height(32.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            repeat(48) { i ->
-                                val h = (20 + kotlin.math.abs(kotlin.math.sin(i * 0.6)) * 70).toFloat()
-                                Box(
-                                    Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(h / 100f)
-                                        .background(EmberFg.copy(alpha = 0.6f))
-                                )
-                            }
-                        }
-                        PxButton("▶  PLAY", onClick = {})
-                    }
-                }
             }
 
             if (friend.post.kind != PostKind.TEXT && friend.post.caption.isNotBlank()) {

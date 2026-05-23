@@ -6,7 +6,7 @@ data class FriendPost(
     val place: String?,
 )
 
-enum class PostKind { PHOTO, TEXT, VOICE }
+enum class PostKind { PHOTO, TEXT }
 
 data class Friend(
     val id: String,
@@ -21,7 +21,7 @@ data class Friend(
 enum class FriendStatus { JUST_POSTED, LIVE }
 
 enum class AppScreen {
-    ONBOARDING, MAP, PRESENCE, COMPOSER, POST, CHAT, SETTINGS, HANDSHAKE, MEMENTO
+    ONBOARDING, MAP, PRESENCE, COMPOSER, POST, OWN_POST, CHAT, SETTINGS, HANDSHAKE, MEMENTO
 }
 
 // ── Demo anchor — Debar Maalo, Skopje ─────────────────────────────────────────
@@ -64,7 +64,7 @@ private val SAMPLE_OFFSETS = listOf(
         id = "mira", mark = "M",
         dLat = -0.0029, dLng = +0.0000,
         dist = 320,
-        post   = FriendPost(PostKind.VOICE, "voice · 0:18", "Park"),
+        post   = FriendPost(PostKind.TEXT, "met someone interesting today.", "Park"),
         status = FriendStatus.LIVE,
     ),
     FriendOffset(

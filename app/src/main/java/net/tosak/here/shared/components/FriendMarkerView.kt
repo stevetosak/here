@@ -121,5 +121,4 @@ fun FriendMarkerView(
 private fun postGlyph(kind: PostKind): String = when (kind) {
     PostKind.PHOTO -> "⊡"
     PostKind.TEXT  -> "≡"
-    PostKind.VOICE -> "⏵"
 }

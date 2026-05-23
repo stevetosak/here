@@ -46,6 +46,7 @@ fun MapScreen(
     onCompose: () -> Unit,
     onFriend: (Friend) -> Unit,
     onSettings: () -> Unit,
+    onOwnPost: () -> Unit = {},
     onHandshake: () -> Unit = {},
     onChat: () -> Unit = {},
     viewModel: MapViewModel = hiltViewModel(),
@@ -53,6 +54,7 @@ fun MapScreen(
     val context      = LocalContext.current
     val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
     val friends      by viewModel.friends.collectAsStateWithLifecycle()
+    val activePost   by viewModel.activePost.collectAsStateWithLifecycle()
     val isLocationEnabled = rememberLocationEnabled()
 
     // ── Runtime permission + location updates lifecycle ───────────────────────
@@ -97,6 +99,8 @@ fun MapScreen(
                 showFriends = presenceOn && friendsVisible,
                 friends     = friends,
                 onFriendTap = onFriend,
+                activePost  = activePost,
+                onYouTap    = onOwnPost,
                 youLat      = youLat!!,
                 youLng      = youLng!!,
             )

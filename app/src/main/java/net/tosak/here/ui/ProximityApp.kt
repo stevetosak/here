@@ -20,6 +20,7 @@ import net.tosak.here.screens.chat.ChatScreen
 import net.tosak.here.screens.composer.ComposerScreen
 import net.tosak.here.screens.mapscreen.MapScreen
 import net.tosak.here.screens.ping.PingOverlay
+import net.tosak.here.screens.post.OwnPostScreen
 import net.tosak.here.screens.post.PostViewScreen
 import net.tosak.here.screens.presence.PresenceScreen
 import net.tosak.here.screens.presence.viewmodel.PresenceViewModel
@@ -99,6 +100,7 @@ fun ProximityApp() {
                         nav.navigate(AppScreen.POST)
                         showPing     = false
                     },
+                    onOwnPost      = { nav.navigate(AppScreen.OWN_POST) },
                     onSettings     = { nav.navigate(AppScreen.SETTINGS) },
                     onHandshake    = { nav.navigate(AppScreen.HANDSHAKE) },
                 )
@@ -126,6 +128,9 @@ fun ProximityApp() {
                         chatSeed = seed
                         nav.navigate(AppScreen.CHAT)
                     },
+                )
+                AppScreen.OWN_POST -> OwnPostScreen(
+                    onClose = { nav.goBack() },
                 )
                 AppScreen.CHAT -> ChatScreen(
                     friend     = activeFriend,

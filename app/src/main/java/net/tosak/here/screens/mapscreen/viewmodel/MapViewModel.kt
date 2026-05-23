@@ -10,9 +10,7 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,23 +18,26 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import net.tosak.here.shared.location.LocationRepository
 import net.tosak.here.shared.model.Friend
 import net.tosak.here.shared.model.YOU_LAT
 import net.tosak.here.shared.model.YOU_LNG
 import net.tosak.here.shared.model.anchoredSampleFriends
+import net.tosak.here.shared.storage.PostEntity
+import net.tosak.here.shared.storage.PostRepository
 import javax.inject.Inject
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
     private val fusedLocationClient: FusedLocationProviderClient,
+    private val locationRepository: LocationRepository,
+    private val postRepository: PostRepository,
 ) : ViewModel() {
 
     private val _userLocation = MutableStateFlow<Location?>(null)
     val userLocation: StateFlow<Location?> = _userLocation.asStateFlow()
 
-    // Demo friends re-anchored to the live user position every time a new GPS
-    // fix arrives. Falls back to the hardcoded Skopje coordinates until the
-    // first fix so the map is never empty during development.
+    // Demo friends re-anchored to the live user position on every GPS fix.
     val friends: StateFlow<List<Friend>> = _userLocation
         .map { loc ->
             anchoredSampleFriends(
@@ -50,24 +51,37 @@ class MapViewModel @Inject constructor(
             initialValue = anchoredSampleFriends(YOU_LAT, YOU_LNG),
         )
 
-    // ── Continuous updates ────────────────────────────────────────────────────
-    // Used while the map screen is visible; stopped when the screen leaves
-    // composition via the DisposableEffect in MapScreen.
+    /** The most recent non-expired post the user has authored, or null if none. */
+    val activePost: StateFlow<PostEntity?> = postRepository.activePosts
+        .map { it.firstOrNull() }
+        .stateIn(
+            scope        = viewModelScope,
+            started      = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    init {
+        // Clean up any posts left over from a previous session on startup.
+        viewModelScope.launch { postRepository.pruneExpired() }
+    }
+
+    // ── Continuous location updates ───────────────────────────────────────────
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
-            result.lastLocation?.let { _userLocation.value = it }
+            result.lastLocation?.let { loc ->
+                _userLocation.value = loc
+                // Publish to the shared singleton so other ViewModels (e.g.
+                // ComposerViewModel) can read the last known position.
+                locationRepository.update(loc)
+            }
         }
     }
 
-    // Permission is verified by the caller (MapScreen) before this is invoked.
     @SuppressLint("MissingPermission")
     fun startLocationUpdates() {
         val request = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 10_000L)
             .setMinUpdateIntervalMillis(5_000L)
-            // Only emit a new fix if the device has physically moved ≥ 15 m.
-            // Filters out GPS noise and sub-block drift that would otherwise
-            // cause the map marker to jitter while the user is standing still.
             .setMinUpdateDistanceMeters(15f)
             .build()
 

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!--
+        Exposes files/images/ inside the app's private filesDir to the system camera app.
+        The camera writes the full-res JPEG here; the app reads it back after capture.
+    -->
+    <files-path name="images" path="images/" />
+</paths>
