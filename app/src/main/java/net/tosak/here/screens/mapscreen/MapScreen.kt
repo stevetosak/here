@@ -18,8 +18,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -35,8 +36,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.ui.unit.DpOffset
 import net.tosak.here.shared.location.rememberLocationEnabled
-import net.tosak.here.shared.model.YOU_LAT
-import net.tosak.here.shared.model.YOU_LNG
 import kotlin.math.absoluteValue
 
 @Composable
@@ -81,8 +80,8 @@ fun MapScreen(
         onDispose { viewModel.stopLocationUpdates() }
     }
 
-    val youLat = userLocation?.latitude  ?: YOU_LAT
-    val youLng = userLocation?.longitude ?: YOU_LNG
+    val youLat = userLocation?.latitude
+    val youLng = userLocation?.longitude
 
     // ── UI ────────────────────────────────────────────────────────────────────
     Box(
@@ -91,28 +90,32 @@ fun MapScreen(
             .background(EmberBg),
     ) {
 
-
+        // ── Base layer: real map or radar placeholder ─────────────────────────
+        if (userLocation != null) {
             SchematicMap(
                 presenceOn  = presenceOn,
                 showFriends = presenceOn && friendsVisible,
                 friends     = friends,
                 onFriendTap = onFriend,
-                youLat      = youLat,
-                youLng      = youLng,
+                youLat      = youLat!!,
+                youLng      = youLng!!,
             )
-
-            // ── Top toolbar ───────────────────────────────────────────────────────
             MapTopBar(
                 presenceOn = presenceOn,
-                youLat     = youLat,
-                youLng     = youLng,
+                youLat     = youLat!!,
+                youLng     = youLng!!,
                 onSettings = onSettings,
                 onChat     = onChat,
                 modifier   = Modifier.align(Alignment.TopCenter),
             )
+        } else {
+            MapPlaceholder(modifier = Modifier.fillMaxSize())
+        }
 
+        // ── Overlays (applied in priority order) ──────────────────────────────
 
-        if (!presenceOn) Curtain {
+        // Presence curtain — only shown when map is live and user is invisible
+        if (userLocation != null && !presenceOn) Curtain {
             Mono("YOU ARE INVISIBLE.", size = 10.sp, color = EmberMuted, letterSpacing = 0.32.sp)
             Text(
                 text  = "nothing here yet.",
@@ -124,19 +127,14 @@ fun MapScreen(
             )
         }
 
-        if(userLocation == null){
-            Curtain {
-                Mono("Fetching Location...")
-            }
-
+        // Location-services-off curtain — hard error state, always on top
+        if (!isLocationEnabled.value) Curtain {
+            Mono("LOCATION SERVICES OFF.", size = 10.sp, color = EmberMuted, letterSpacing = 0.32.sp)
+            Text(
+                text  = "enable location to continue.",
+                style = TextStyle(fontFamily = JetBrainsMono, fontSize = 20.sp, color = EmberFg, lineHeight = 28.sp),
+            )
         }
-
-        if(!isLocationEnabled.value){
-            Curtain {
-                Mono("Location turned off.")
-            }
-        }
-
 
         if (presenceOn && !friendsVisible) {
             EmptyStatePoem(modifier = Modifier.align(Alignment.Center))
@@ -288,6 +286,115 @@ private fun formatCoords(lat: Double, lng: Double): String {
 }
 
 // ── Private composables ───────────────────────────────────────────────────────
+
+/**
+ * Animated radar-sweep canvas shown while waiting for the first GPS fix.
+ * Draws a faint street-grid, the same concentric range rings as the live map,
+ * a rotating amber sweep line with a trailing cone, and an "ACQUIRING SIGNAL"
+ * label — all without needing real coordinates.
+ */
+@Composable
+private fun MapPlaceholder(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "radar")
+
+    // Sweep line rotates 360° every 3 s
+    val sweepAngle by transition.animateFloat(
+        initialValue  = 0f,
+        targetValue   = 360f,
+        animationSpec = infiniteRepeatable(
+            animation  = tween(3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "sweep",
+    )
+    // "ACQUIRING SIGNAL" label blinks slowly
+    val labelAlpha by transition.animateFloat(
+        initialValue  = 0.25f,
+        targetValue   = 0.70f,
+        animationSpec = infiniteRepeatable(
+            animation  = tween(900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "blink",
+    )
+
+    Box(modifier = modifier) {
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val cx = size.width  / 2f
+            val cy = size.height / 2f
+            val R  = size.width  * 0.448f   // same RADIUS_FRACTION as live map
+
+            // ── Faint street-grid ─────────────────────────────────────────────
+            val gridStep  = 40.dp.toPx()
+            val gridColor = EmberFg.copy(alpha = 0.045f)
+            var x = cx % gridStep
+            while (x <= size.width)  { drawLine(gridColor, Offset(x, 0f), Offset(x, size.height), 0.5.dp.toPx()); x += gridStep }
+            var y = cy % gridStep
+            while (y <= size.height) { drawLine(gridColor, Offset(0f, y), Offset(size.width, y), 0.5.dp.toPx()); y += gridStep }
+
+            // ── Range rings ───────────────────────────────────────────────────
+            drawCircle(
+                color  = EmberFg.copy(alpha = 0.18f),
+                radius = R,
+                center = Offset(cx, cy),
+                style  = Stroke(0.6.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(3f, 3f))),
+            )
+            drawCircle(EmberFg.copy(alpha = 0.10f), R * 0.66f, Offset(cx, cy), style = Stroke(0.4.dp.toPx()))
+            drawCircle(EmberFg.copy(alpha = 0.08f), R * 0.33f, Offset(cx, cy), style = Stroke(0.4.dp.toPx()))
+
+            // ── Rotating radar sweep ──────────────────────────────────────────
+            // rotate() pivots the canvas so (cx,cy) stays fixed; sweep line
+            // always points "up" in local coords → rotates in world space.
+            rotate(sweepAngle, Offset(cx, cy)) {
+                // Trailing cone — 90° arc behind the sweep line
+                drawArc(
+                    color      = EmberAccent.copy(alpha = 0.07f),
+                    startAngle = -180f,
+                    sweepAngle = 90f,
+                    useCenter  = true,
+                    topLeft    = Offset(cx - R, cy - R),
+                    size       = Size(R * 2, R * 2),
+                )
+                // Bright sweep line
+                drawLine(
+                    color       = EmberAccent.copy(alpha = 0.45f),
+                    start       = Offset(cx, cy),
+                    end         = Offset(cx, cy - R),
+                    strokeWidth = 1.2.dp.toPx(),
+                )
+            }
+
+            // ── Crosshair (no dot — position unknown) ─────────────────────────
+            val arm = 11.dp.toPx(); val gap = 5.dp.toPx(); val lw = 0.8.dp.toPx()
+            val col = EmberFg.copy(alpha = 0.28f)
+            drawLine(col, Offset(cx - arm, cy), Offset(cx - gap, cy), lw)
+            drawLine(col, Offset(cx + gap, cy), Offset(cx + arm, cy), lw)
+            drawLine(col, Offset(cx, cy - arm), Offset(cx, cy - gap), lw)
+            drawLine(col, Offset(cx, cy + gap), Offset(cx, cy + arm), lw)
+
+            // ── Vignette ──────────────────────────────────────────────────────
+            drawRect(
+                brush = Brush.radialGradient(
+                    colorStops = arrayOf(0f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.5f)),
+                    center     = Offset(cx, cy),
+                    radius     = size.width * 0.8f,
+                ),
+            )
+        }
+
+        // Status label — sits below the crosshair, above the bottom bar
+        Mono(
+            text          = "ACQUIRING SIGNAL",
+            size          = 9.sp,
+            color         = EmberFg.copy(alpha = labelAlpha),
+            letterSpacing = 0.32.sp,
+            modifier      = Modifier
+                .align(Alignment.Center)
+                .padding(top = 72.dp),  // clear of the crosshair center
+        )
+    }
+}
 
 @Composable
 private fun Curtain(content: @Composable () -> Unit) {

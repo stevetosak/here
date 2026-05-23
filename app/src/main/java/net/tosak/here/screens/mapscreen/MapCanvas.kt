@@ -11,7 +11,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.mapbox.geojson.Point
+import com.mapbox.maps.CameraBoundsOptions
 import com.mapbox.maps.CameraOptions
+import com.mapbox.maps.CoordinateBounds
 import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
@@ -31,8 +33,7 @@ import kotlin.math.*
 // ── Constants ─────────────────────────────────────────────────────────────────
 private const val STYLE_URL = "mapbox://styles/stevetosak/cmpegiuhf001l01sc8dwo4o3j"
 
-// Fraction of screen half-width that the range radius should occupy.
-// Matches the original prototype: 170 px out of 380 px canvas ≈ 0.448.
+// Fraction of screen half-width that the range radius should occupy at min zoom.
 private const val RADIUS_FRACTION = 0.448f
 
 // ── Zoom helper ───────────────────────────────────────────────────────────────
@@ -70,18 +71,22 @@ fun SchematicMap(
     val density       = LocalDensity.current
     val screenWidthPx = with(density) { 390.dp.roundToPx() }
 
-    val zoom = remember(radiusMeters, youLat, screenWidthPx) {
+    // Minimum zoom = radius fills RADIUS_FRACTION of the screen — cannot zoom out past this.
+    val minZoom = remember(radiusMeters, youLat, screenWidthPx) {
         radiusToZoom(radiusMeters, youLat, screenWidthPx)
     }
 
     val mapViewportState = rememberMapViewportState {
         setCameraOptions {
             center(Point.fromLngLat(youLng, youLat))
-            zoom(zoom)
+            zoom(minZoom)
             pitch(0.0)
             bearing(0.0)
         }
     }
+
+    // Current zoom read from Compose-observable CameraState — drives range-circle scaling.
+    val currentZoom = mapViewportState.cameraState?.zoom ?: minZoom
 
     // Stable ref so ViewAnnotation lambdas always call the current callback
     val onFriendTapRef = rememberUpdatedState(onFriendTap)
@@ -92,34 +97,75 @@ fun SchematicMap(
             modifier         = Modifier.fillMaxSize(),
             mapViewportState = mapViewportState,
             style            = { MapStyle(style = STYLE_URL) },
-            scaleBar         = {},   // disable built-in scale bar
+            scaleBar         = {},
         ) {
 
-            // Lock all gestures on first composition
+            // ── One-time setup: gestures ──────────────────────────────────────
+            // Pan and pinch-zoom are enabled; rotate/pitch/zoom-out are locked.
             MapEffect(Unit) { mapView ->
                 mapView.gestures.apply {
-                    scrollEnabled                           = false
-                    pinchToZoomEnabled                      = false
+                    scrollEnabled                           = true   // free pan within bounds
+                    pinchToZoomEnabled                      = true   // zoom in only (min zoom enforced below)
                     rotateEnabled                           = false
                     pitchEnabled                            = false
-                    doubleTapToZoomInEnabled                = false
-                    doubleTouchToZoomOutEnabled             = false
-                    quickZoomEnabled                        = false
+                    doubleTapToZoomInEnabled                = true
+                    doubleTouchToZoomOutEnabled             = false  // no two-finger zoom-out
+                    quickZoomEnabled                        = false  // no single-finger drag zoom
                     simultaneousRotateAndPinchToZoomEnabled = false
                 }
             }
 
-            // Sync camera whenever radius / position changes
-            MapEffect(zoom, youLat, youLng) { mapView ->
+            // ── Camera + bounds sync ──────────────────────────────────────────
+            // Re-runs whenever position or radius changes.
+            //
+            // ORDER MATTERS: tight bounds from a previous GPS fix can clamp a
+            // setCamera() call if the new position happens to fall outside the
+            // old bounding box.  We therefore:
+            //   1. Clear all bounds first   → camera can move freely
+            //   2. Move camera to new position
+            //   3. Re-apply tight bounds centred on that new position
+            // All three calls are synchronous on the GL thread, so no frame
+            // is rendered between them and the user never sees an intermediate state.
+            MapEffect(minZoom, youLat, youLng, radiusMeters) { mapView ->
+                // 1 — lift any existing pan/zoom restriction
+                mapView.mapboxMap.setBounds(CameraBoundsOptions.Builder().build())
+
+                // 2 — re-centre on the (possibly new) GPS position
                 mapView.mapboxMap.setCamera(
                     CameraOptions.Builder()
                         .center(Point.fromLngLat(youLng, youLat))
-                        .zoom(zoom)
+                        .zoom(minZoom)
+                        .build()
+                )
+
+                // 3 — lock pan to ±radius around the new position
+                val dLat = radiusMeters / 111_000.0
+                val dLng = radiusMeters / (111_000.0 * cos(youLat * PI / 180.0))
+                mapView.mapboxMap.setBounds(
+                    CameraBoundsOptions.Builder()
+                        .bounds(
+                            CoordinateBounds(
+                                Point.fromLngLat(youLng - dLng, youLat - dLat), // SW
+                                Point.fromLngLat(youLng + dLng, youLat + dLat), // NE
+                            )
+                        )
+                        .minZoom(minZoom)
                         .build()
                 )
             }
 
-            // Friend markers — Compose-native ViewAnnotations
+            // ── "You" marker — always rendered at the GPS coordinate ──────────
+            // Lives inside Mapbox so it tracks the real position when panning.
+            ViewAnnotation(
+                options = viewAnnotationOptions {
+                    geometry(Point.fromLngLat(youLng, youLat))
+                    allowOverlap(true)
+                },
+            ) {
+                HereTheme { YouMarkerView(presenceOn = presenceOn) }
+            }
+
+            // ── Friend markers ────────────────────────────────────────────────
             if (showFriends && presenceOn) {
                 friends.forEach { friend ->
                     ViewAnnotation(
@@ -130,7 +176,7 @@ fun SchematicMap(
                     ) {
                         HereTheme {
                             FriendMarkerView(
-                                friend = friend,
+                                friend  = friend,
                                 onClick = { onFriendTapRef.value(friend) },
                             )
                         }
@@ -139,24 +185,83 @@ fun SchematicMap(
             }
         }
 
-        // ── Compose Canvas overlay ────────────────────────────────────────
-        // The map is always centered on the user and never panned, so the
-        // user is always at the screen center — no coordinate projection needed.
+        // ── Compose Canvas overlay: range rings + vignette ────────────────
+        // "You" dot/crosshair moved to YouMarkerView above so it pans with the map.
+        // Range rings scale with currentZoom so the geographic boundary stays accurate.
         MapOverlayCanvas(
-            presenceOn     = presenceOn,
+            presenceOn    = presenceOn,
             radiusFraction = RADIUS_FRACTION,
-            modifier       = Modifier.fillMaxSize(),
+            currentZoom   = currentZoom,
+            minZoom       = minZoom,
+            modifier      = Modifier.fillMaxSize(),
         )
     }
 }
 
-// ── Canvas overlay: range circle · user dot · vignette ───────────────────────
+// ── Canvas overlay: range rings · vignette ────────────────────────────────────
+// The "You" position marker has been moved to a ViewAnnotation (YouMarkerView)
+// so it follows the real GPS coordinate when the user pans the map.
 @Composable
 private fun MapOverlayCanvas(
     presenceOn: Boolean,
     radiusFraction: Float,
+    currentZoom: Double,
+    minZoom: Double,
     modifier: Modifier = Modifier,
 ) {
+    Canvas(modifier = modifier) {
+        val cx = size.width  / 2f
+        val cy = size.height / 2f
+
+        // ── Range circles — scale with zoom so the geographic boundary stays correct ──
+        // At minZoom, R = radiusFraction * screenWidth (the calibration point).
+        // Each additional zoom level doubles the pixel radius (same metres, more px/m).
+        if (presenceOn) {
+            val zoomDelta = (currentZoom - minZoom).toFloat().coerceAtLeast(0f)
+            val R = size.width * radiusFraction * 2f.pow(zoomDelta)
+
+            drawCircle(
+                brush  = Brush.radialGradient(
+                    colorStops = arrayOf(
+                        0f   to EmberAccent.copy(alpha = 0.06f),
+                        0.6f to EmberAccent.copy(alpha = 0.02f),
+                        1f   to Color.Transparent,
+                    ),
+                    center = Offset(cx, cy),
+                    radius = R,
+                ),
+                radius = R,
+                center = Offset(cx, cy),
+            )
+            // Outer dashed boundary ring
+            drawCircle(
+                color  = EmberFg.copy(alpha = 0.35f),
+                radius = R,
+                center = Offset(cx, cy),
+                style  = Stroke(
+                    width      = 0.6.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(3f, 3f)),
+                ),
+            )
+            // Mid + inner rings (decorative)
+            drawCircle(EmberFg.copy(alpha = 0.18f), R * 0.66f, Offset(cx, cy), style = Stroke(0.4.dp.toPx()))
+            drawCircle(EmberFg.copy(alpha = 0.14f), R * 0.33f, Offset(cx, cy), style = Stroke(0.4.dp.toPx()))
+        }
+
+        // ── Vignette ──────────────────────────────────────────────────────────
+        drawRect(
+            brush = Brush.radialGradient(
+                colorStops = arrayOf(0f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.6f)),
+                center     = Offset(cx, cy),
+                radius     = size.width * 0.8f,
+            ),
+        )
+    }
+}
+
+// ── "You" position marker (ViewAnnotation — tracks real GPS position) ─────────
+@Composable
+private fun YouMarkerView(presenceOn: Boolean) {
     val infiniteTransition = rememberInfiniteTransition(label = "youPulse")
 
     val pulseScale by infiniteTransition.animateFloat(
@@ -174,54 +279,23 @@ private fun MapOverlayCanvas(
         label = "pulseAlpha",
     )
 
-    Canvas(modifier = modifier) {
-        val cx = size.width  / 2f
-        val cy = size.height / 2f
-        val R  = size.width  * radiusFraction   // range radius in px
+    Canvas(modifier = Modifier.size(48.dp)) {
+        val cx   = size.width  / 2f
+        val cy   = size.height / 2f
+        val base = 6.dp.toPx()
 
-        // ── Range circles ─────────────────────────────────────────────────
+        // ── Animated presence pulse ───────────────────────────────────────────
         if (presenceOn) {
-            drawCircle(
-                brush  = Brush.radialGradient(
-                    colorStops = arrayOf(
-                        0f   to EmberAccent.copy(alpha = 0.06f),
-                        0.6f to EmberAccent.copy(alpha = 0.02f),
-                        1f   to Color.Transparent,
-                    ),
-                    center = Offset(cx, cy),
-                    radius = R,
-                ),
-                radius = R,
-                center = Offset(cx, cy),
-            )
-            // Outer dashed ring
-            drawCircle(
-                color  = EmberFg.copy(alpha = 0.35f),
-                radius = R,
-                center = Offset(cx, cy),
-                style  = Stroke(
-                    width      = 0.6.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(3f, 3f)),
-                ),
-            )
-            // Mid + inner rings
-            drawCircle(EmberFg.copy(alpha = 0.18f), R * 0.66f, Offset(cx, cy), style = Stroke(0.4.dp.toPx()))
-            drawCircle(EmberFg.copy(alpha = 0.14f), R * 0.33f, Offset(cx, cy), style = Stroke(0.4.dp.toPx()))
-        }
-
-        // ── "You" animated pulse ──────────────────────────────────────────
-        if (presenceOn) {
-            val base = 6.dp.toPx()
             drawCircle(EmberAccent.copy(alpha = pulseAlpha), base + base * pulseScale, Offset(cx, cy))
             drawCircle(EmberAccent.copy(alpha = 0.55f), base, Offset(cx, cy))
         }
 
-        // ── "You" dot + ring ──────────────────────────────────────────────
+        // ── Dot ───────────────────────────────────────────────────────────────
         val dotR = 4.dp.toPx()
         drawCircle(if (presenceOn) EmberAccent else Color.Transparent, dotR, Offset(cx, cy))
         drawCircle(EmberFg, dotR, Offset(cx, cy), style = Stroke(1.2.dp.toPx()))
 
-        // ── Crosshair ─────────────────────────────────────────────────────
+        // ── Crosshair ─────────────────────────────────────────────────────────
         val arm = 11.dp.toPx()
         val gap = 5.dp.toPx()
         val lw  = 0.8.dp.toPx()
@@ -230,14 +304,5 @@ private fun MapOverlayCanvas(
         drawLine(col, Offset(cx + gap, cy), Offset(cx + arm, cy), lw)
         drawLine(col, Offset(cx, cy - arm), Offset(cx, cy - gap), lw)
         drawLine(col, Offset(cx, cy + gap), Offset(cx, cy + arm), lw)
-
-        // ── Vignette ──────────────────────────────────────────────────────
-        drawRect(
-            brush = Brush.radialGradient(
-                colorStops = arrayOf(0f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.5f)),
-                center     = Offset(cx, cy),
-                radius     = size.width * 0.8f,
-            ),
-        )
     }
 }
