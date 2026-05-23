@@ -7,6 +7,9 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import androidx.core.content.edit
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import net.tosak.here.storage.AppStorage
 import net.tosak.here.storage.AppStorage.Companion.KEY_HANDLE
 import net.tosak.here.storage.AppStorage.Companion.KEY_TOKEN
@@ -33,6 +36,11 @@ class AuthRepository @Inject constructor(
     val handle: String
         get() = appStorage.prefs.getString(KEY_HANDLE, "you") ?: "you"
 
+    // Hot flow so both AuthViewModel and NavigationViewModel can independently
+    // observe auth state changes without polling SharedPreferences.
+    private val _isAuthenticatedFlow = MutableStateFlow(isAuthenticated)
+    val isAuthenticatedFlow: StateFlow<Boolean> = _isAuthenticatedFlow.asStateFlow()
+
     /**
      * Persist a new session.  Generates a fresh UUID token each time so a
      * re-onboard creates a distinct session rather than reusing the old one.
@@ -42,11 +50,13 @@ class AuthRepository @Inject constructor(
             putString(KEY_TOKEN, UUID.randomUUID().toString())
                 .putString(KEY_HANDLE, handle.ifBlank { "you" })
         }
+        _isAuthenticatedFlow.value = true
     }
 
     /** Wipe everything — equivalent to signing out. */
     fun clearSession() {
         appStorage.prefs.edit { clear() }
+        _isAuthenticatedFlow.value = false
     }
 
 

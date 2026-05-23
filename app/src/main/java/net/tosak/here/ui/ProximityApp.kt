@@ -26,38 +26,17 @@ import net.tosak.here.screens.handshake.HandshakeScreen
 import net.tosak.here.screens.handshake.MementoScreen
 import net.tosak.here.screens.handshake.viewmodel.MementoData
 import net.tosak.here.screens.onboarding.OnboardingScreen
+import net.tosak.here.shared.navigation.NavigationViewModel
 import net.tosak.here.ui.theme.*
 
 @Composable
 fun ProximityApp() {
     val authViewModel: AuthViewModel = hiltViewModel()
-    val isAuthenticated by authViewModel.isAuthenticated.collectAsState()
-
-    // ── Navigation stack ───────────────────────────────────────────────────────
-    // Seed from auth state: authenticated users go straight to MAP; fresh
-    // installs (or after sign-out) start at ONBOARDING.
-    // ONBOARDING is cleared from the stack on completion so users can never
-    // swipe back into it.  Any push/pop triggers recomposition via SnapshotStateList.
-    val navStack = remember {
-        mutableStateListOf(
-            if (authViewModel.isAuthenticated.value) AppScreen.MAP else AppScreen.ONBOARDING
-        )
-    }
-    val currentScreen = navStack.last()
-
-    fun navigate(s: AppScreen) { navStack.add(s) }
-    fun goBack() { if (navStack.size > 1) navStack.removeAt(navStack.lastIndex) }
+    val nav: NavigationViewModel = hiltViewModel()
 
     // System back button — disabled at the root (MAP / ONBOARDING)
-    BackHandler(enabled = navStack.size > 1) { goBack() }
+    BackHandler(enabled = nav.backStack.size > 1) { nav.goBack() }
 
-    // React to sign-out: reset the entire stack to ONBOARDING
-    LaunchedEffect(isAuthenticated) {
-        if (!isAuthenticated) {
-            navStack.clear()
-            navStack.add(AppScreen.ONBOARDING)
-        }
-    }
 
     // Handle is seeded from the saved session on authenticated starts
     var handle         by remember { mutableStateOf(authViewModel.savedHandle) }
@@ -72,8 +51,8 @@ fun ProximityApp() {
     var scenario     by remember { mutableStateOf("cluster") }
     val friendsVisible = scenario == "cluster" || scenario == "ping"
 
-    LaunchedEffect(scenario, currentScreen) {
-        if (scenario == "ping" && currentScreen == AppScreen.MAP) showPing = true
+    LaunchedEffect(scenario, nav.current) {
+        if (scenario == "ping" && nav.current == AppScreen.MAP) showPing = true
         else if (scenario != "ping") showPing = false
     }
 
@@ -92,7 +71,7 @@ fun ProximityApp() {
         .windowInsetsPadding(WindowInsets.systemBars)
         .background(EmberBg).imePadding()) {
         AnimatedContent(
-            targetState   = currentScreen,
+            targetState   = nav.current,
             transitionSpec = { fadeIn() togetherWith fadeOut() },
             label         = "screenTransition",
         ) { s ->
@@ -103,56 +82,55 @@ fun ProximityApp() {
                         // Persist the session so next launch skips onboarding
                         authViewModel.saveSession(handle)
                         // Replace onboarding with MAP as the stack root
-                        navStack.clear()
-                        navStack.add(AppScreen.MAP)
+                        nav.reset(AppScreen.MAP)
                         flashToast("READY · YOU ARE INVISIBLE")
                     },
                 )
                 AppScreen.MAP -> MapScreen(
                     presenceOn     = presenceOn,
                     friendsVisible = friendsVisible,
-                    onActivate     = { navigate(AppScreen.PRESENCE) },
-                    onCompose      = { navigate(AppScreen.COMPOSER) },
+                    onActivate     = { nav.navigate(AppScreen.PRESENCE) },
+                    onCompose      = { nav.navigate(AppScreen.COMPOSER) },
                     onFriend       = { f ->
                         activeFriend = f
-                        navigate(AppScreen.POST)
+                        nav.navigate(AppScreen.POST)
                         showPing     = false
                     },
-                    onSettings     = { navigate(AppScreen.SETTINGS) },
-                    onHandshake    = { navigate(AppScreen.HANDSHAKE) },
+                    onSettings     = { nav.navigate(AppScreen.SETTINGS) },
+                    onHandshake    = { nav.navigate(AppScreen.HANDSHAKE) },
                 )
                 AppScreen.PRESENCE -> PresenceScreen(
                     currentlyOn = presenceOn,
                     onActivated = { newOn ->
                         presenceOn = newOn
-                        goBack()
+                        nav.goBack()
                         flashToast(if (newOn) "PRESENCE ON · 400M · 2H" else "PRESENCE OFF · NOTHING REMAINS")
                     },
-                    onCancel    = { goBack() },
+                    onCancel    = { nav.goBack() },
                 )
                 AppScreen.COMPOSER -> ComposerScreen(
-                    onClose  = { goBack() },
+                    onClose  = { nav.goBack() },
                     onSubmit = { _, _ ->
-                        goBack()
+                        nav.goBack()
                         flashToast("POSTED · EXPIRES 2H")
                     },
                 )
                 AppScreen.POST -> PostViewScreen(
                     friend  = activeFriend,
-                    onClose = { goBack() },
+                    onClose = { nav.goBack() },
                     onChat  = { seed ->
                         chatSeed = seed
-                        navigate(AppScreen.CHAT)
+                        nav.navigate(AppScreen.CHAT)
                     },
                 )
                 AppScreen.CHAT -> ChatScreen(
                     friend     = activeFriend,
                     seedReply  = chatSeed,
-                    onClose    = { goBack() },
+                    onClose    = { nav.goBack() },
                 )
                 AppScreen.SETTINGS -> SettingsScreen(
                     handle    = handle,
-                    onClose   = { goBack() },
+                    onClose   = { nav.goBack() },
                     onSignOut = { authViewModel.signOut() },
                 )
                 AppScreen.HANDSHAKE -> HandshakeScreen(
@@ -160,10 +138,9 @@ fun ProximityApp() {
                         pendingMemento = memento
                         // Replace HANDSHAKE with MEMENTO in the stack so back
                         // from Memento returns to MAP, not back to HandshakeScreen.
-                        navStack.removeAt(navStack.lastIndex)
-                        navStack.add(AppScreen.MEMENTO)
+                        nav.replaceTop(AppScreen.MEMENTO)
                     },
-                    onBack = { goBack() },
+                    onBack = { nav.goBack() },
                 )
                 AppScreen.MEMENTO -> {
                     val memento = pendingMemento
@@ -173,8 +150,7 @@ fun ProximityApp() {
                             onContinue = {
                                 pendingMemento = null
                                 // Pop back to MAP, clearing MEMENTO from the stack
-                                navStack.clear()
-                                navStack.add(AppScreen.MAP)
+                                nav.reset(AppScreen.MAP)
                                 flashToast("CONNECTED · SAVED TO MOMENTS")
                             },
                         )
@@ -184,13 +160,13 @@ fun ProximityApp() {
         }
 
         // Ping overlay — on top of everything
-        if (showPing && currentScreen == AppScreen.MAP) {
+        if (showPing && nav.current == AppScreen.MAP) {
             PingOverlay(
                 friend    = sampleFriends[0],
                 onSee     = {
                     showPing     = false
                     activeFriend = sampleFriends[0]
-                    navigate(AppScreen.POST)
+                    nav.navigate(AppScreen.POST)
                 },
                 onDismiss = { showPing = false },
             )
