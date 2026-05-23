@@ -28,14 +28,15 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.tosak.here.shared.model.Friend
-import net.tosak.here.shared.model.YOU_LAT
-import net.tosak.here.shared.model.YOU_LNG
 import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
 import net.tosak.here.screens.mapscreen.viewmodel.MapViewModel
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.ui.unit.DpOffset
+import net.tosak.here.shared.location.rememberLocationEnabled
+import net.tosak.here.shared.model.YOU_LAT
+import net.tosak.here.shared.model.YOU_LNG
 import kotlin.math.absoluteValue
 
 @Composable
@@ -53,6 +54,7 @@ fun MapScreen(
     val context      = LocalContext.current
     val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
     val friends      by viewModel.friends.collectAsStateWithLifecycle()
+    val isLocationEnabled = rememberLocationEnabled()
 
     // ── Runtime permission + location updates lifecycle ───────────────────────
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -88,26 +90,53 @@ fun MapScreen(
             .fillMaxSize()
             .background(EmberBg),
     ) {
-        SchematicMap(
-            presenceOn  = presenceOn,
-            showFriends = presenceOn && friendsVisible,
-            friends     = friends,
-            onFriendTap = onFriend,
-            youLat      = youLat,
-            youLng      = youLng,
-        )
 
-        // ── Top toolbar ───────────────────────────────────────────────────────
-        MapTopBar(
-            presenceOn = presenceOn,
-            youLat     = youLat,
-            youLng     = youLng,
-            onSettings = onSettings,
-            onChat     = onChat,
-            modifier   = Modifier.align(Alignment.TopCenter),
-        )
 
-        if (!presenceOn) PresenceOffCurtain()
+            SchematicMap(
+                presenceOn  = presenceOn,
+                showFriends = presenceOn && friendsVisible,
+                friends     = friends,
+                onFriendTap = onFriend,
+                youLat      = youLat,
+                youLng      = youLng,
+            )
+
+            // ── Top toolbar ───────────────────────────────────────────────────────
+            MapTopBar(
+                presenceOn = presenceOn,
+                youLat     = youLat,
+                youLng     = youLng,
+                onSettings = onSettings,
+                onChat     = onChat,
+                modifier   = Modifier.align(Alignment.TopCenter),
+            )
+
+
+        if (!presenceOn) Curtain {
+            Mono("YOU ARE INVISIBLE.", size = 10.sp, color = EmberMuted, letterSpacing = 0.32.sp)
+            Text(
+                text  = "nothing here yet.",
+                style = TextStyle(fontFamily = JetBrainsMono, fontSize = 22.sp, color = EmberFg, lineHeight = 30.sp),
+            )
+            Text(
+                text  = "go live to see who is near.",
+                style = TextStyle(fontFamily = JetBrainsMono, fontSize = 22.sp, color = EmberMuted, lineHeight = 30.sp),
+            )
+        }
+
+        if(userLocation == null){
+            Curtain {
+                Mono("Fetching Location...")
+            }
+
+        }
+
+        if(!isLocationEnabled.value){
+            Curtain {
+                Mono("Location turned off.")
+            }
+        }
+
 
         if (presenceOn && !friendsVisible) {
             EmptyStatePoem(modifier = Modifier.align(Alignment.Center))
@@ -261,7 +290,7 @@ private fun formatCoords(lat: Double, lng: Double): String {
 // ── Private composables ───────────────────────────────────────────────────────
 
 @Composable
-private fun PresenceOffCurtain() {
+private fun Curtain(content: @Composable () -> Unit) {
     Box(
         modifier         = Modifier
             .fillMaxSize()
@@ -273,15 +302,7 @@ private fun PresenceOffCurtain() {
             verticalArrangement = Arrangement.spacedBy(14.dp),
             modifier            = Modifier.padding(horizontal = 40.dp),
         ) {
-            Mono("YOU ARE INVISIBLE.", size = 10.sp, color = EmberMuted, letterSpacing = 0.32.sp)
-            Text(
-                text  = "nothing here yet.",
-                style = TextStyle(fontFamily = JetBrainsMono, fontSize = 22.sp, color = EmberFg, lineHeight = 30.sp),
-            )
-            Text(
-                text  = "go live to see who is near.",
-                style = TextStyle(fontFamily = JetBrainsMono, fontSize = 22.sp, color = EmberMuted, lineHeight = 30.sp),
-            )
+           content()
         }
     }
 }

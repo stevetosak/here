@@ -82,29 +82,6 @@ class MapViewModel @Inject constructor(
         fusedLocationClient.removeLocationUpdates(locationCallback)
     }
 
-    // ── One-shot fetch (kept as per the requested pattern) ────────────────────
-    @SuppressLint("MissingPermission")
-    fun fetchLocation(simulateDelay: Boolean = false) {
-        if (simulateDelay) {
-            viewModelScope.launch {
-                delay(3_000)
-                fusedLocationClient.getCurrentLocation(
-                    Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-                    CancellationTokenSource().token,
-                ).addOnSuccessListener { location ->
-                    _userLocation.value = location
-                }
-            }
-        } else {
-            fusedLocationClient.getCurrentLocation(
-                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-                CancellationTokenSource().token,
-            ).addOnSuccessListener { location ->
-                _userLocation.value = location
-            }
-        }
-    }
-
     override fun onCleared() {
         super.onCleared()
         stopLocationUpdates()

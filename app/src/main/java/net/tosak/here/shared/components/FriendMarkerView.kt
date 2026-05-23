@@ -7,33 +7,40 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.tosak.here.shared.model.Friend
 import net.tosak.here.shared.model.FriendStatus
+import net.tosak.here.shared.model.PostKind
 import net.tosak.here.ui.theme.*
 
 /**
- * Tactical square marker used as a Mapbox ViewAnnotation.
- * Renders [A] / [K] / [M] / [N] in the ember design language.
- * Friends with JUST_POSTED status show an expanding pulse ring.
+ * Callout-pin marker:
  *
- * The overall composable is 64×64 dp so the pulse ring has room to breathe;
- * the square marker is 32×32 dp centered inside that space.
- * ViewAnnotationAnchor.CENTER will pin the GPS coordinate to the center of this view.
+ *   ┌──────────────────────────┐   ← EmberAccent border (JUST_POSTED)
+ *   │  ⊡ · @ALEX · 47M        │     or EmberFg@65% (LIVE)
+ *   └───────────┬──────────────┘
+ *               │                 ← 1 dp stem
+ *               ◉                 ← 7 dp pin dot; pulse ring when JUST_POSTED
+ *
+ * JUST_POSTED → full opacity, EmberAccent colour scheme.
+ * LIVE        → 65% opacity, dim EmberFg colour scheme.
+ *
+ * The ViewAnnotation is CENTER-anchored on the map; the pin dot sits slightly
+ * below the geo-coordinate. Changing the options to BOTTOM anchor would make
+ * the dot align exactly — left as a TODO for when real map data lands.
  */
 @Composable
 fun FriendMarkerView(
     friend: Friend,
     onClick: () -> Unit,
 ) {
-    val showPulse = friend.status == FriendStatus.JUST_POSTED
+    val isJustPosted = friend.status == FriendStatus.JUST_POSTED
+    val markerColor  = if (isJustPosted) EmberAccent else EmberFg.copy(alpha = 0.65f)
 
     val infiniteTransition = rememberInfiniteTransition(label = "friendPulse")
     val pulseProgress by infiniteTransition.animateFloat(
@@ -46,46 +53,73 @@ fun FriendMarkerView(
         label = "pulseProgress",
     )
 
-    Box(
-        modifier         = Modifier.size(64.dp),
-        contentAlignment = Alignment.Center,
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .alpha(if (isJustPosted) 1f else 0.70f)
+            .clickable(
+                indication        = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick           = onClick,
+            ),
     ) {
-        // ── Expanding pulse ring (JUST_POSTED only) ───────────────────────
-        if (showPulse) {
-            val ringSize = (32 + 28 * pulseProgress).dp
-            Box(
-                modifier = Modifier
-                    .size(ringSize)
-                    .border(
-                        width = 1.dp,
-                        color = EmberFg.copy(alpha = (1f - pulseProgress) * 0.75f),
-                        shape = CircleShape,
-                    ),
-            )
-        }
 
-        // ── Square tactical marker ────────────────────────────────────────
+        // ── Label card ────────────────────────────────────────────────────────
         Box(
             modifier = Modifier
-                .size(32.dp)
                 .background(EmberBg)
-                .border(1.dp, EmberFg)
-                .clickable(
-                    indication        = null,
-                    interactionSource = remember { MutableInteractionSource() },
-                    onClick           = onClick,
-                ),
-            contentAlignment = Alignment.Center,
+                .border(0.5.dp, markerColor)
+                .padding(horizontal = 8.dp, vertical = 5.dp),
         ) {
-            Text(
-                text  = friend.mark,
-                style = TextStyle(
-                    fontFamily = JetBrainsMono,
-                    fontSize   = 11.sp,
-                    color      = EmberFg,
-                    fontWeight = FontWeight.Medium,
-                ),
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Mono(postGlyph(friend.post.kind), size = 9.sp, color = markerColor, letterSpacing = 0.sp)
+                Mono("·",                          size = 9.sp, color = EmberMuted,  letterSpacing = 0.sp)
+                Mono("@${friend.id}",              size = 9.sp, color = EmberFg,     letterSpacing = 0.12.sp)
+                Mono("·",                          size = 9.sp, color = EmberMuted,  letterSpacing = 0.sp)
+                Mono("${friend.dist}m",            size = 8.sp, color = EmberMuted,  letterSpacing = 0.10.sp)
+            }
+        }
+
+        // ── Stem ──────────────────────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .width(1.dp)
+                .height(6.dp)
+                .background(markerColor),
+        )
+
+        // ── Pin dot with optional pulse ring ─────────────────────────────────
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier         = Modifier.size(28.dp),   // breathing room for ring
+        ) {
+            if (isJustPosted) {
+                val ringDp = (7 + 16 * pulseProgress).dp
+                Box(
+                    modifier = Modifier
+                        .size(ringDp)
+                        .border(
+                            width = 1.dp,
+                            color = EmberAccent.copy(alpha = (1f - pulseProgress) * 0.70f),
+                            shape = CircleShape,
+                        ),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .background(markerColor, CircleShape),
             )
         }
     }
+}
+
+/** Maps [PostKind] to a single monospace-safe glyph (uppercase-safe — symbols are unaffected). */
+private fun postGlyph(kind: PostKind): String = when (kind) {
+    PostKind.PHOTO -> "⊡"
+    PostKind.TEXT  -> "≡"
+    PostKind.VOICE -> "⏵"
 }
