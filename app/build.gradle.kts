@@ -73,6 +73,7 @@ dependencies {
 
     // Hilt
     implementation(libs.hilt.android)
+    implementation(libs.androidx.exifinterface)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
@@ -86,6 +87,12 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+
+    // CameraX — embedded preview + image capture
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
