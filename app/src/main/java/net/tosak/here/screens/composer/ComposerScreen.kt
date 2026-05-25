@@ -16,7 +16,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import net.tosak.here.screens.composer.components.CameraComposer
+import net.tosak.here.screens.composer.components.CameraPreview
 import net.tosak.here.screens.composer.viewmodel.ComposerViewModel
 import net.tosak.here.shared.model.PostKind
 import net.tosak.here.shared.components.*
@@ -26,6 +26,7 @@ import net.tosak.here.ui.theme.*
 fun ComposerScreen(
     onClose: () -> Unit,
     onSubmit: (PostKind, String) -> Unit,
+    onPhotoComposerSelected: () -> Unit,
     viewModel: ComposerViewModel = hiltViewModel(),
 ) {
     var kind by remember { mutableStateOf<PostKind?>(null) }
@@ -73,37 +74,19 @@ fun ComposerScreen(
 
         // ── Photo composer ────────────────────────────────────────────────────
         if (kind == PostKind.PHOTO) {
-            CameraComposer(
+            onPhotoComposerSelected();
+
+            CameraPreview(
                 capturedPath     = capturedPath,
                 captureRequested = viewModel.captureRequested,
                 onImageCaptured  = viewModel::onImageCaptured,
                 onCaptureFailed  = viewModel::onCaptureFailed,
                 onRetake         = viewModel::resetPhoto,
-                modifier         = Modifier.weight(1f),
-            )
-
-            Spacer(Modifier.height(10.dp))
-            BasicTextField(
-                value = text,
-                onValueChange = { text = it.take(80) },
-                modifier = Modifier
+                caption          = text,
+                onCaptionChange  = { text = it.take(80) },
+                modifier         = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, EmberBorder)
-                    .padding(12.dp),
-                textStyle = TextStyle(
-                    fontFamily = JetBrainsMono,
-                    fontSize = 13.sp,
-                    color = EmberFg
-                ),
-                cursorBrush = SolidColor(EmberAccent),
-                decorationBox = { inner ->
-                    if (text.isEmpty()) Mono(
-                        "caption (optional)…",
-                        size = 13.sp,
-                        color = EmberMuted
-                    )
-                    inner()
-                },
+                    .aspectRatio(3f / 4f),
             )
         }
 
@@ -150,56 +133,74 @@ fun ComposerScreen(
             }
         }
 
-        // ── Footer — single adaptive button ───────────────────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            when (kind) {
-                PostKind.PHOTO -> {
-                    if (capturedPath == null) {
-                        // No photo yet — trigger capture
-                        PxButton(
-                            text = if (isCapturing) "  …  " else "◉ TAKE",
-                            onClick = { viewModel.requestCapture() },
-                            modifier = Modifier.weight(1f),
-                            primary = true,
-                        )
-                    } else {
-                        // Photo taken — ready to post
+        // ── Action row — sits directly below camera or text field ────────────
+        if (kind != null) {
+            Spacer(Modifier.weight(1f))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                when (kind) {
+                    PostKind.PHOTO -> {
+                        if (capturedPath == null) {
+                            PxButton(
+                                text = "⟳",
+                                onClick = { /* TODO: flip camera */ },
+                            )
+                            PxButton(
+                                text = if (isCapturing) "  …  " else "◉ TAKE",
+                                onClick = { viewModel.requestCapture() },
+                                modifier = Modifier.weight(1f),
+                                primary = true,
+                            )
+                        } else {
+                            PxButton(
+                                text = "POST TO RADIUS →",
+                                onClick = {
+                                    viewModel.submit(PostKind.PHOTO, text) {
+                                        onSubmit(PostKind.PHOTO, text)
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                primary = true,
+                            )
+                        }
+                    }
+
+                    PostKind.TEXT -> {
                         PxButton(
                             text = "POST TO RADIUS →",
                             onClick = {
-                                viewModel.submit(PostKind.PHOTO, text) {
-                                    onSubmit(PostKind.PHOTO, text)
+                                viewModel.submit(PostKind.TEXT, text) {
+                                    onSubmit(PostKind.TEXT, text)
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            primary = true,
+                            primary = text.isNotBlank(),
                         )
                     }
-                }
 
-                PostKind.TEXT -> {
-                    PxButton(
-                        text = "POST TO RADIUS →",
-                        onClick = {
-                            viewModel.submit(PostKind.TEXT, text) {
-                                onSubmit(PostKind.TEXT, text)
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        primary = text.isNotBlank(),
-                    )
+                    else -> {}
                 }
-
-                null -> { /* kind picker — no footer button */ }
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        // ── Push metadata to the bottom ───────────────────────────────────────
+        Spacer(Modifier.weight(1f))
+
+        // ── Bottom metadata strip ─────────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Mono("EXPIRES ON EXIT", size = 8.sp, color = EmberMuted, letterSpacing = 0.18.sp)
+            Mono("41°59′N · 21°25′E", size = 8.sp, color = EmberMuted, letterSpacing = 0.14.sp)
+        }
     }
 }
 

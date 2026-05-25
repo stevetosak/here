@@ -26,12 +26,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.view.setPadding
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.flow.Flow
 import net.tosak.here.screens.composer.camera.setupTapToFocus
 import net.tosak.here.screens.composer.camera.setupZoom
 import net.tosak.here.shared.components.Mono
 import net.tosak.here.ui.theme.EmberAccent
+import net.tosak.here.ui.theme.EmberBorder
 import net.tosak.here.ui.theme.EmberFg
 import net.tosak.here.ui.theme.EmberMuted
 import java.io.File
@@ -107,7 +109,7 @@ fun InFrameCamera(
     }
 
     // ── Layout ─────────────────────────────────────────────────────────────────
-    Box(modifier = modifier) {
+    Box(modifier = modifier.border(1.dp, EmberBorder)) {
         if (hasCamPermission) {
             AndroidView(
                 modifier = Modifier
@@ -116,6 +118,7 @@ fun InFrameCamera(
                 factory = { ctx ->
                     PreviewView(ctx).apply {
                         this.scaleType = scaleType
+                        setPadding(10)
                         layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
                         implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                     }

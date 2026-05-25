@@ -80,7 +80,7 @@ fun PostViewScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(4f / 5f)
+                            .aspectRatio(4f / 3f)
                             .border(1.dp, EmberFg.copy(alpha = 0.33f))
                             .drawBehind {
                                 val step = 16.dp.toPx()

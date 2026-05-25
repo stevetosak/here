@@ -120,7 +120,7 @@ private fun OwnPostContent(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(4f / 5f)
+                            .aspectRatio(4f / 3f)
                             .border(1.dp, EmberFg.copy(alpha = 0.33f))
                             .then(
                                 if (imageBitmap == null) Modifier.drawBehind {

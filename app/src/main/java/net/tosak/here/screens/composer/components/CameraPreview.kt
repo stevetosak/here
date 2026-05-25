@@ -6,7 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,7 +18,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
@@ -24,27 +28,33 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import net.tosak.here.screens.composer.camera.toRotatedImageBitmap
 import net.tosak.here.shared.components.Mono
+import net.tosak.here.ui.theme.EmberAccent
 import net.tosak.here.ui.theme.EmberBg
 import net.tosak.here.ui.theme.EmberFg
+import net.tosak.here.ui.theme.EmberMuted
+import net.tosak.here.ui.theme.JetBrainsMono
 import java.io.File
 
 /**
  * Switches between the live camera preview ([InFrameCamera]) and the captured photo.
  *
- * State is owned by the parent (ViewModel) — this composable is purely presentational:
- * - [capturedPath] null → show camera preview
- * - [capturedPath] non-null → show the captured image with a "RETAKE" badge
+ * The [modifier] passed in must constrain the size to match the desired frame
+ * (e.g. `fillMaxWidth().aspectRatio(4f/5f)`), so that overlaid children — the ✕ dismiss
+ * button and the caption bar — are anchored to the actual image edges, not an
+ * arbitrarily tall parent slot.
  *
- * Capture is triggered externally via [captureRequested]; results bubble up through
- * [onImageCaptured] / [onCaptureFailed]. "RETAKE" calls [onRetake].
+ * [caption] / [onCaptionChange] are owned by the caller and overlaid at the bottom of
+ * the captured image only (not shown during the live preview).
  */
 @Composable
-fun CameraComposer(
+fun CameraPreview(
     capturedPath: String?,
     captureRequested: Flow<Unit>,
     onImageCaptured: (String) -> Unit,
     onCaptureFailed: () -> Unit,
     onRetake: () -> Unit,
+    caption: String,
+    onCaptionChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Load and rotate the bitmap on the IO thread whenever capturedPath changes.
@@ -55,19 +65,16 @@ fun CameraComposer(
         }
     }
 
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
+    // The Box is sized by the caller's modifier (e.g. fillMaxWidth + aspectRatio),
+    // so no contentAlignment centering is needed — children fill it directly.
+    Box(modifier = modifier) {
         when {
             // ── Live camera preview ───────────────────────────────────────────
             capturedPath == null -> InFrameCamera(
-                modifier = Modifier.fillMaxSize(),
                 captureRequested = captureRequested,
                 onImageCaptured = onImageCaptured,
                 onCaptureFailed = onCaptureFailed,
             )
-
 
             // ── Captured photo ────────────────────────────────────────────────
             imageBitmap != null -> {
@@ -77,10 +84,37 @@ fun CameraComposer(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
-                // RETAKE badge — top-right corner
+
+                // Caption bar — overlaid at the bottom of the image
+                BasicTextField(
+                    value = caption,
+                    onValueChange = onCaptionChange,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .background(EmberBg.copy(alpha = 0.75f))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    textStyle = TextStyle(
+                        fontFamily = JetBrainsMono,
+                        fontSize = 13.sp,
+                        color = EmberFg,
+                    ),
+                    cursorBrush = SolidColor(EmberAccent),
+                    decorationBox = { inner ->
+                        if (caption.isEmpty()) Mono(
+                            "caption (optional)…",
+                            size = 13.sp,
+                            color = EmberMuted,
+                        )
+                        inner()
+                    },
+                )
+
+                // ✕ dismiss — overlaid at the top-left corner of the image
                 Box(
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
+                        .align(Alignment.TopStart)
+                        .padding(10.dp)
                         .background(EmberBg.copy(alpha = 0.82f))
                         .clickable(
                             indication = null,
@@ -89,7 +123,7 @@ fun CameraComposer(
                         )
                         .padding(horizontal = 10.dp, vertical = 6.dp),
                 ) {
-                    Mono("RETAKE", size = 8.sp, color = EmberFg, letterSpacing = 0.22.sp)
+                    Mono("X", size = 12.sp, color = EmberFg, letterSpacing = 0.22.sp)
                 }
             }
         }
