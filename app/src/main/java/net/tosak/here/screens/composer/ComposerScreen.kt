@@ -16,7 +16,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import net.tosak.here.screens.composer.components.CameraPreview
 import net.tosak.here.screens.composer.viewmodel.ComposerViewModel
 import net.tosak.here.shared.model.PostKind
 import net.tosak.here.shared.components.*
@@ -31,14 +30,6 @@ fun ComposerScreen(
 ) {
     var kind by remember { mutableStateOf<PostKind?>(null) }
     var text by remember { mutableStateOf("") }
-
-    val capturedPath by viewModel.capturedImagePath.collectAsState()
-    val isCapturing  by viewModel.isCapturing.collectAsState()
-
-    // Clear captured photo whenever the user navigates back to the kind picker.
-    LaunchedEffect(kind) {
-        if (kind != PostKind.PHOTO) viewModel.resetPhoto()
-    }
 
     // ── Layout ────────────────────────────────────────────────────────────────
     Column(
@@ -72,22 +63,9 @@ fun ComposerScreen(
             }
         }
 
-        // ── Photo composer ────────────────────────────────────────────────────
+        // ── Photo composer — navigates to the dedicated PostPhotoScreen ──────────
         if (kind == PostKind.PHOTO) {
-            onPhotoComposerSelected();
-
-            CameraPreview(
-                capturedPath     = capturedPath,
-                captureRequested = viewModel.captureRequested,
-                onImageCaptured  = viewModel::onImageCaptured,
-                onCaptureFailed  = viewModel::onCaptureFailed,
-                onRetake         = viewModel::resetPhoto,
-                caption          = text,
-                onCaptionChange  = { text = it.take(80) },
-                modifier         = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(3f / 4f),
-            )
+            onPhotoComposerSelected()
         }
 
         // ── Text composer ─────────────────────────────────────────────────────
@@ -144,32 +122,6 @@ fun ComposerScreen(
                 verticalAlignment = Alignment.Bottom
             ) {
                 when (kind) {
-                    PostKind.PHOTO -> {
-                        if (capturedPath == null) {
-                            PxButton(
-                                text = "⟳",
-                                onClick = { /* TODO: flip camera */ },
-                            )
-                            PxButton(
-                                text = if (isCapturing) "  …  " else "◉ TAKE",
-                                onClick = { viewModel.requestCapture() },
-                                modifier = Modifier.weight(1f),
-                                primary = true,
-                            )
-                        } else {
-                            PxButton(
-                                text = "POST TO RADIUS →",
-                                onClick = {
-                                    viewModel.submit(PostKind.PHOTO, text) {
-                                        onSubmit(PostKind.PHOTO, text)
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                primary = true,
-                            )
-                        }
-                    }
-
                     PostKind.TEXT -> {
                         PxButton(
                             text = "POST TO RADIUS →",

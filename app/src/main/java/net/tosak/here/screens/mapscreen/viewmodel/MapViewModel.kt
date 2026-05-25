@@ -18,7 +18,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import net.tosak.here.shared.events.Event
+import net.tosak.here.shared.events.EventBus
 import net.tosak.here.shared.location.LocationRepository
+import net.tosak.here.shared.model.AppScreen
 import net.tosak.here.shared.model.Friend
 import net.tosak.here.shared.model.YOU_LAT
 import net.tosak.here.shared.model.YOU_LNG
@@ -32,12 +35,12 @@ class MapViewModel @Inject constructor(
     private val fusedLocationClient: FusedLocationProviderClient,
     private val locationRepository: LocationRepository,
     private val postRepository: PostRepository,
+    private val eventBus: EventBus,
 ) : ViewModel() {
 
     private val _userLocation = MutableStateFlow<Location?>(null)
     val userLocation: StateFlow<Location?> = _userLocation.asStateFlow()
 
-    // Demo friends re-anchored to the live user position on every GPS fix.
     val friends: StateFlow<List<Friend>> = _userLocation
         .map { loc ->
             anchoredSampleFriends(
@@ -51,7 +54,6 @@ class MapViewModel @Inject constructor(
             initialValue = anchoredSampleFriends(YOU_LAT, YOU_LNG),
         )
 
-    /** The most recent non-expired post the user has authored, or null if none. */
     val activePost: StateFlow<PostEntity?> = postRepository.activePosts
         .map { it.firstOrNull() }
         .stateIn(
@@ -61,18 +63,28 @@ class MapViewModel @Inject constructor(
         )
 
     init {
-        // Clean up any posts left over from a previous session on startup.
         viewModelScope.launch { postRepository.pruneExpired() }
     }
 
-    // ── Continuous location updates ───────────────────────────────────────────
+    // ── Navigation ────────────────────────────────────────────────────────────
+
+    fun onActivate()  { eventBus.emit(Event.Nav.NavigateTo(AppScreen.PRESENCE)) }
+    fun onCompose()   { eventBus.emit(Event.Nav.NavigateTo(AppScreen.COMPOSER)) }
+    fun onOwnPost()   { eventBus.emit(Event.Nav.NavigateTo(AppScreen.OWN_POST)) }
+    fun onSettings()  { eventBus.emit(Event.Nav.NavigateTo(AppScreen.SETTINGS)) }
+    fun onHandshake() { eventBus.emit(Event.Nav.NavigateTo(AppScreen.HANDSHAKE)) }
+
+    fun onFriend(friend: Friend) {
+        eventBus.emit(Event.AppState.ActiveFriendChanged(friend))
+        eventBus.emit(Event.Nav.NavigateTo(AppScreen.POST))
+    }
+
+    // ── Location updates ──────────────────────────────────────────────────────
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             result.lastLocation?.let { loc ->
                 _userLocation.value = loc
-                // Publish to the shared singleton so other ViewModels (e.g.
-                // ComposerViewModel) can read the last known position.
                 locationRepository.update(loc)
             }
         }

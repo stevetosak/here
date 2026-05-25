@@ -64,8 +64,6 @@ import net.tosak.here.ui.theme.*
  */
 @Composable
 fun HandshakeScreen(
-    onConfirmed: (MementoData) -> Unit,
-    onBack: () -> Unit,
     viewModel: HandshakeViewModel = hiltViewModel(),
 ) {
     val state   by viewModel.state.collectAsStateWithLifecycle()
@@ -165,7 +163,7 @@ fun HandshakeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment     = Alignment.CenterVertically,
                 ) {
-                    BackButton(onClick = onBack)
+                    BackButton(onClick = viewModel::onBack)
                     Mono(
                         text          = "HANDSHAKE",
                         size          = 9.sp,
@@ -345,7 +343,7 @@ fun HandshakeScreen(
                 onComplete = {
                     showWave = false
                     val confirmed = state as? HandshakeState.Confirmed ?: return@ConfirmationWaveOverlay
-                    onConfirmed(confirmed.memento)
+                    viewModel.onConfirmed(confirmed.memento)
                 },
             )
         }

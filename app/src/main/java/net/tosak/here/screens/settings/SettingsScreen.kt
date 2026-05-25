@@ -15,15 +15,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import net.tosak.here.screens.settings.viewmodel.SettingsViewModel
 import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
 
 @Composable
 fun SettingsScreen(
-    handle: String,
-    onClose: () -> Unit,
-    onSignOut: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel(),
 ) {
+    val handle = viewModel.handle
     var haptic by remember { mutableStateOf(true) }
     var sound  by remember { mutableStateOf(false) }
 
@@ -38,7 +39,7 @@ fun SettingsScreen(
             modifier          = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BackButton(onClick = onClose)
+            BackButton(onClick = viewModel::onClose)
             Spacer(Modifier.weight(1f))
             Mono(
                 text          = "SETTINGS",
@@ -92,7 +93,7 @@ fun SettingsScreen(
                     .clickable(
                         indication        = null,
                         interactionSource = remember { MutableInteractionSource() },
-                        onClick           = onSignOut,
+                        onClick           = viewModel::onSignOut,
                     )
                     .padding(14.dp),
             ) {

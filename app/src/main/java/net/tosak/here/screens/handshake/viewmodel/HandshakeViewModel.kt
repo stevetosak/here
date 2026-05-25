@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import net.tosak.here.shared.events.Event
+import net.tosak.here.shared.events.EventBus
+import net.tosak.here.shared.model.AppScreen
 import javax.inject.Inject
 
 /**
@@ -23,7 +26,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class HandshakeViewModel @Inject constructor(
-    private val ble: BleHandshakeManager
+    private val ble: BleHandshakeManager,
+    private val eventBus: EventBus,
 ) : ViewModel() {
 
     companion object {
@@ -101,6 +105,17 @@ class HandshakeViewModel @Inject constructor(
         if (_state.value !is HandshakeState.Confirmed) {
             _state.value = HandshakeState.Idle
         }
+    }
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+
+    fun onConfirmed(memento: MementoData) {
+        eventBus.emit(Event.AppState.PendingMementoChanged(memento))
+        eventBus.emit(Event.Nav.ReplaceTop(AppScreen.MEMENTO))
+    }
+
+    fun onBack() {
+        eventBus.emit(Event.Nav.GoBack)
     }
 
     /** Reset to Idle — call after an Error or after navigating away from Memento. */

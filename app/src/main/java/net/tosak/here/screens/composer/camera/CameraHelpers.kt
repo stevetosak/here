@@ -15,20 +15,33 @@ import androidx.exifinterface.media.ExifInterface
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-fun File.toRotatedImageBitmap(): ImageBitmap {
+fun File.toRotatedBitmap(forceFlipHorizontal: Boolean = false): Bitmap? {
     val exif = ExifInterface(absolutePath)
-    val rotation = when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
-        ExifInterface.ORIENTATION_ROTATE_90  -> 90f
-        ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-        ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-        else -> 0f
+    val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+
+    val (rotation, exifFlip) = when (orientation) {
+        ExifInterface.ORIENTATION_ROTATE_90       -> 90f  to false
+        ExifInterface.ORIENTATION_ROTATE_180      -> 180f to false
+        ExifInterface.ORIENTATION_ROTATE_270      -> 270f to false
+        ExifInterface.ORIENTATION_TRANSPOSE       -> 90f  to true
+        ExifInterface.ORIENTATION_TRANSVERSE      -> 270f to true
+        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> 0f   to true
+        ExifInterface.ORIENTATION_FLIP_VERTICAL   -> 180f to true
+        else                                      -> 0f   to false
     }
+
+    val flip = exifFlip || forceFlipHorizontal  // ← combine both sources
     val original = BitmapFactory.decodeFile(absolutePath)
-    if (rotation == 0f) return original.asImageBitmap()
-    val matrix = Matrix().apply { postRotate(rotation) }
+
+    if (rotation == 0f && !flip) return original
+
+    val matrix = Matrix().apply {
+        if (rotation != 0f) postRotate(rotation)
+        if (flip) postScale(-1f, 1f)
+    }
+
     return Bitmap.createBitmap(original, 0, 0, original.width, original.height, matrix, true)
         .also { original.recycle() }
-        .asImageBitmap()
 }
 
 fun setupTapToFocus(previewView: PreviewView, camera: Camera){

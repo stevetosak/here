@@ -15,10 +15,12 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import net.tosak.here.screens.onboarding.components.AuthEmailStep
 import net.tosak.here.screens.onboarding.components.AuthVerifyStep
 import net.tosak.here.screens.onboarding.components.InfoStepBody
 import net.tosak.here.screens.onboarding.data.OnboardStep
+import net.tosak.here.screens.onboarding.viewmodel.OnboardingViewModel
 import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
 
@@ -49,7 +51,9 @@ private enum class OnboardPhase { INFO, EMAIL, VERIFY, HANDLE }
 private fun String.looksLikeEmail() = contains('@') && lastIndexOf('.') > indexOf('@') + 1
 
 @Composable
-fun OnboardingScreen(onDone: (String) -> Unit) {
+fun OnboardingScreen(
+    viewModel: OnboardingViewModel = hiltViewModel(),
+) {
 
     var phase       by remember { mutableStateOf(OnboardPhase.INFO) }
     var step        by remember { mutableIntStateOf(0) }
@@ -278,7 +282,7 @@ fun OnboardingScreen(onDone: (String) -> Unit) {
                     OnboardPhase.HANDLE -> {
                         PxButton(
                             text     = if (handle.isNotBlank()) "ENTER AS @${handle.uppercase()}" else "ENTER ANONYMOUSLY",
-                            onClick  = { onDone(handle.ifBlank { "you" }) },
+                            onClick  = { viewModel.onDone(handle) },
                             modifier = Modifier.weight(1f),
                             primary  = true,
                         )

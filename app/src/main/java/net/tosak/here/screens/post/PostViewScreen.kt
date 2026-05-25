@@ -16,16 +16,17 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import net.tosak.here.shared.model.Friend
 import net.tosak.here.shared.model.PostKind
 import net.tosak.here.shared.components.*
+import net.tosak.here.screens.post.viewmodel.PostViewViewModel
 import net.tosak.here.ui.theme.*
 
 @Composable
 fun PostViewScreen(
     friend: Friend,
-    onClose: () -> Unit,
-    onChat: (String?) -> Unit,
+    viewModel: PostViewViewModel = hiltViewModel(),
 ) {
     var expMins by remember { mutableIntStateOf(83) }
     LaunchedEffect(Unit) {
@@ -124,7 +125,7 @@ fun PostViewScreen(
                             .clickable(
                                 indication        = null,
                                 interactionSource = remember { MutableInteractionSource() },
-                            ) { onChat(q) }
+                            ) { viewModel.onChat(q) }
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                     ) {
                         Mono(q, size = 10.sp, letterSpacing = 0.18.sp)
@@ -140,8 +141,8 @@ fun PostViewScreen(
                 .padding(22.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            PxButton("← MAP", onClick = onClose)
-            PxButton("OPEN THREAD →", onClick = { onChat(null) }, modifier = Modifier.weight(1f), primary = true)
+            PxButton("← MAP", onClick = viewModel::onClose)
+            PxButton("OPEN THREAD →", onClick = { viewModel.onChat(null) }, modifier = Modifier.weight(1f), primary = true)
         }
     }
 }

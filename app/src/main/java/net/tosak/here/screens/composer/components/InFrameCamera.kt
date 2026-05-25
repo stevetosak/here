@@ -2,6 +2,10 @@ package net.tosak.here.screens.composer.components
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.util.Log
+import android.view.OrientationEventListener
+import android.view.Surface
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -27,16 +31,34 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.core.view.setPadding
+import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.flow.Flow
 import net.tosak.here.screens.composer.camera.setupTapToFocus
 import net.tosak.here.screens.composer.camera.setupZoom
+import net.tosak.here.screens.composer.camera.toRotatedBitmap
 import net.tosak.here.shared.components.Mono
 import net.tosak.here.ui.theme.EmberAccent
 import net.tosak.here.ui.theme.EmberBorder
 import net.tosak.here.ui.theme.EmberFg
 import net.tosak.here.ui.theme.EmberMuted
 import java.io.File
+import java.io.FileOutputStream
+
+
+fun File.logExif() {
+    val exif = ExifInterface(absolutePath)
+    val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+    Log.d("EXIF", "Orientation value: $orientation")
+    // ORIENTATION_NORMAL = 1
+    // ORIENTATION_FLIP_HORIZONTAL = 2
+    // ORIENTATION_ROTATE_180 = 3
+    // ORIENTATION_FLIP_VERTICAL = 4
+    // ORIENTATION_TRANSPOSE = 5
+    // ORIENTATION_ROTATE_90 = 6
+    // ORIENTATION_TRANSVERSE = 7
+    // ORIENTATION_ROTATE_270 = 8
+}
 
 /**
  * Embedded CameraX preview that lives inside any parent frame.
@@ -50,12 +72,12 @@ import java.io.File
  */
 @Composable
 fun InFrameCamera(
+    modifier: Modifier = Modifier,
     captureRequested: Flow<Unit>,
     onImageCaptured: (String) -> Unit,
     onCaptureFailed: () -> Unit,
     scaleType: PreviewView.ScaleType = PreviewView.ScaleType.FILL_CENTER,
     cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA,
-    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -73,18 +95,26 @@ fun InFrameCamera(
         ActivityResultContracts.RequestPermission()
     ) { granted -> hasCamPermission = granted }
 
+    // ── CameraX ────────────────────────────────────────────────────────────────
+    val imageCapture = remember { ImageCapture.Builder().setTargetRotation(Surface.ROTATION_0).build() }
+    val cameraProvider = remember { mutableStateOf<ProcessCameraProvider?>(null) }
+
+    val orientationEventListener = object : OrientationEventListener(context) {
+        override fun onOrientationChanged(orientation: Int) {
+            val rotation = when (orientation) {
+                in 45..134  -> Surface.ROTATION_270
+                in 135..224 -> Surface.ROTATION_180
+                in 225..314 -> Surface.ROTATION_90
+                else        -> Surface.ROTATION_0
+            }
+            imageCapture.targetRotation = rotation // update dynamically
+        }
+    }
+
     LaunchedEffect(Unit) {
         if (!hasCamPermission) permLauncher.launch(Manifest.permission.CAMERA)
     }
 
-    // ── CameraX ────────────────────────────────────────────────────────────────
-    val imageCapture = remember { ImageCapture.Builder().build() }
-    val cameraProvider = remember { mutableStateOf<ProcessCameraProvider?>(null) }
-
-    // Release the camera when this composable leaves the tree.
-    DisposableEffect(lifecycleOwner) {
-        onDispose { cameraProvider.value?.unbindAll() }
-    }
 
     // ── Capture trigger ────────────────────────────────────────────────────────
     // Collects the shared flow emitted by the footer button in ComposerScreen.
@@ -96,8 +126,19 @@ fun InFrameCamera(
                 ImageCapture.OutputFileOptions.Builder(file).build(),
                 ContextCompat.getMainExecutor(context),
                 object : ImageCapture.OnImageSavedCallback {
-                    override fun onImageSaved(out: ImageCapture.OutputFileResults) =
+                    override fun onImageSaved(out: ImageCapture.OutputFileResults) {
+                        val rotated =
+                            File(file.absolutePath)
+                                .toRotatedBitmap(cameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA)
+                        if (rotated != null) {
+                            FileOutputStream(file).use { out ->
+                                rotated.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                            }
+                            rotated.recycle()
+                        }
                         onImageCaptured(file.absolutePath)
+
+                    }
 
                     override fun onError(e: ImageCaptureException) {
                         file.delete()
@@ -108,43 +149,62 @@ fun InFrameCamera(
         }
     }
 
+    // Release the camera when this composable leaves the tree.
+    DisposableEffect(lifecycleOwner) {
+        onDispose { cameraProvider.value?.unbindAll() }
+    }
+
+    DisposableEffect(Unit) {
+        orientationEventListener.enable()
+        onDispose { orientationEventListener.disable() }
+    }
+
+
     // ── Layout ─────────────────────────────────────────────────────────────────
     Box(modifier = modifier.border(1.dp, EmberBorder)) {
         if (hasCamPermission) {
-            AndroidView(
-                modifier = Modifier
-                    .padding(0.dp)
-                    .fillMaxSize(),
-                factory = { ctx ->
-                    PreviewView(ctx).apply {
-                        this.scaleType = scaleType
-                        setPadding(10)
-                        layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                    }
-                },
-                update = { previewView ->
-                    cameraProviderFuture.addListener({
-                        val provider = cameraProviderFuture.get()
-                        cameraProvider.value = provider
-                        val preview = Preview.Builder().build()
-                            .also { it.setSurfaceProvider(previewView.surfaceProvider) }
+            key(cameraSelector) {
+                AndroidView(
+                    modifier = Modifier
+                        .padding(0.dp)
+                        .fillMaxSize(),
+                    factory = { ctx ->
+                        PreviewView(ctx).apply {
+                            this.scaleType = scaleType
+                            setPadding(10)
+                            layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                        }
+                    },
+                    update = { previewView ->
+                        cameraProviderFuture.addListener({
+                            val provider = cameraProviderFuture.get()
+                            cameraProvider.value = provider
+                            val preview = Preview.Builder().build()
+                                .also { it.setSurfaceProvider(previewView.surfaceProvider) }
 
-                        try {
-                            provider.unbindAll()
-                            val camera = provider.bindToLifecycle(
-                                lifecycleOwner,
-                                cameraSelector,
-                                preview,
-                                imageCapture,
-                            )
-                            cameraState.value = camera
-                            setupTapToFocus(previewView = previewView, camera = camera)
-                            setupZoom(context = context, previewView = previewView, camera = camera)
-                        } catch (_: Exception) { /* camera unavailable on this device */ }
-                    }, ContextCompat.getMainExecutor(context))
-                }
-            )
+                            try {
+                                provider.unbindAll()
+                                val camera = provider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    cameraSelector,
+                                    preview,
+                                    imageCapture,
+                                )
+                                cameraState.value = camera
+                                setupTapToFocus(previewView = previewView, camera = camera)
+                                setupZoom(
+                                    context = context,
+                                    previewView = previewView,
+                                    camera = camera
+                                )
+                            } catch (_: Exception) { /* camera unavailable on this device */
+                            }
+                        }, ContextCompat.getMainExecutor(context))
+                    }
+                )
+            }
+
         } else {
             // Permission denied — show inline fallback.
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

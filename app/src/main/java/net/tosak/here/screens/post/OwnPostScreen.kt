@@ -31,21 +31,20 @@ import net.tosak.here.ui.theme.*
 
 @Composable
 fun OwnPostScreen(
-    onClose: () -> Unit,
     viewModel: OwnPostViewModel = hiltViewModel(),
 ) {
     val post by viewModel.activePost.collectAsStateWithLifecycle()
 
     // Post expired or was deleted while the screen was open — go back automatically.
     if (post == null) {
-        LaunchedEffect(Unit) { onClose() }
+        LaunchedEffect(Unit) { viewModel.onClose() }
         return
     }
 
     OwnPostContent(
         post     = post!!,
-        onClose  = onClose,
-        onDelete = { viewModel.deletePost(onDeleted = onClose) },
+        onClose  = viewModel::onClose,
+        onDelete = viewModel::deletePost,
     )
 }
 

@@ -42,13 +42,6 @@ import kotlin.math.absoluteValue
 fun MapScreen(
     presenceOn: Boolean,
     friendsVisible: Boolean,
-    onActivate: () -> Unit,
-    onCompose: () -> Unit,
-    onFriend: (Friend) -> Unit,
-    onSettings: () -> Unit,
-    onOwnPost: () -> Unit = {},
-    onHandshake: () -> Unit = {},
-    onChat: () -> Unit = {},
     viewModel: MapViewModel = hiltViewModel(),
 ) {
     val context      = LocalContext.current
@@ -98,9 +91,9 @@ fun MapScreen(
                 presenceOn  = presenceOn,
                 showFriends = presenceOn && friendsVisible,
                 friends     = friends,
-                onFriendTap = onFriend,
+                onFriendTap = viewModel::onFriend,
                 activePost  = activePost,
-                onYouTap    = onOwnPost,
+                onYouTap    = viewModel::onOwnPost,
                 youLat      = youLat!!,
                 youLng      = youLng!!,
             )
@@ -108,8 +101,8 @@ fun MapScreen(
                 presenceOn = presenceOn,
                 youLat     = youLat!!,
                 youLng     = youLng!!,
-                onSettings = onSettings,
-                onChat     = onChat,
+                onSettings = viewModel::onSettings,
+                onChat     = {},
                 modifier   = Modifier.align(Alignment.TopCenter),
             )
         } else {
@@ -167,16 +160,16 @@ fun MapScreen(
                 // Primary presence action
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (presenceOn) {
-                        PxButton("＋ POST A MOMENT", onClick = onCompose, modifier = Modifier.weight(1f), primary = true)
-                        PxButton("OFF", onClick = onActivate)
+                        PxButton("＋ POST A MOMENT", onClick = viewModel::onCompose, modifier = Modifier.weight(1f), primary = true)
+                        PxButton("OFF", onClick = viewModel::onActivate)
                     } else {
-                        PxButton("GO LIVE →", onClick = onActivate, modifier = Modifier.weight(1f), primary = true)
+                        PxButton("GO LIVE →", onClick = viewModel::onActivate, modifier = Modifier.weight(1f), primary = true)
                     }
                 }
                 // Connect — always present, secondary
                 PxButton(
                     text     = "⬡  CONNECT",
-                    onClick  = onHandshake,
+                    onClick  = viewModel::onHandshake,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

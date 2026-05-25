@@ -4,20 +4,23 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import net.tosak.here.screens.presence.viewmodel.PresenceViewModel
 import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
 
 @Composable
 fun PresenceScreen(
-    currentlyOn: Boolean,
-    onActivated: (Boolean) -> Unit,
-    onCancel: () -> Unit,
+    viewModel: PresenceViewModel = hiltViewModel(),
 ) {
+    val currentlyOn by viewModel.presenceOn.collectAsStateWithLifecycle()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -67,11 +70,11 @@ fun PresenceScreen(
                 .fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
-            HoldGesture(onComplete = { onActivated(!currentlyOn) })
+            HoldGesture(onComplete = { viewModel.onActivated(!currentlyOn) })
         }
 
         // Cancel
-        PxButton("CANCEL", onClick = onCancel, modifier = Modifier.fillMaxWidth())
+        PxButton("CANCEL", onClick = viewModel::onCancel, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(28.dp))
     }
 }

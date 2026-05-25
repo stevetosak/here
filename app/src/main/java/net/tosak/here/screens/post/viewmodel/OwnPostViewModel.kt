@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import net.tosak.here.shared.events.Event
+import net.tosak.here.shared.events.EventBus
 import net.tosak.here.shared.storage.PostEntity
 import net.tosak.here.shared.storage.PostRepository
 import javax.inject.Inject
@@ -15,9 +17,9 @@ import javax.inject.Inject
 @HiltViewModel
 class OwnPostViewModel @Inject constructor(
     private val postRepository: PostRepository,
+    private val eventBus: EventBus,
 ) : ViewModel() {
 
-    /** The user's current active post, or null if it has expired / been deleted. */
     val activePost: StateFlow<PostEntity?> = postRepository.activePosts
         .map { it.firstOrNull() }
         .stateIn(
@@ -26,11 +28,17 @@ class OwnPostViewModel @Inject constructor(
             initialValue = null,
         )
 
-    fun deletePost(onDeleted: () -> Unit) {
+    // ── Navigation ────────────────────────────────────────────────────────────
+
+    fun onClose() {
+        eventBus.emit(Event.Nav.GoBack)
+    }
+
+    fun deletePost() {
         val post = activePost.value ?: return
         viewModelScope.launch {
             postRepository.deletePost(post.id)
-            onDeleted()
+            eventBus.emit(Event.Nav.GoBack)
         }
     }
 }

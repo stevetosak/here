@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import net.tosak.here.screens.chat.viewmodel.ChatViewModel
 import net.tosak.here.shared.model.Friend
 import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
@@ -27,7 +29,7 @@ private data class ChatMessage(val who: String, val text: String, val time: Stri
 fun ChatScreen(
     friend: Friend,
     seedReply: String?,
-    onClose: () -> Unit,
+    viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val initMessages = remember(friend, seedReply) {
         mutableStateListOf<ChatMessage>().apply {
@@ -170,7 +172,7 @@ fun ChatScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 22.dp, vertical = 14.dp),
         ) {
-            PxButton("← MAP", onClick = onClose)
+            PxButton("← MAP", onClick = viewModel::onClose)
         }
         Spacer(Modifier.height(8.dp))
     }

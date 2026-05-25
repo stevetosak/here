@@ -10,7 +10,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import net.tosak.here.screens.handshake.viewmodel.MementoData
+import net.tosak.here.screens.handshake.viewmodel.MementoViewModel
 import net.tosak.here.shared.components.Mono
 import net.tosak.here.shared.components.PxButton
 import net.tosak.here.shared.components.Rule
@@ -32,8 +34,8 @@ import java.util.Locale
 @Composable
 fun MementoScreen(
     memento: MementoData,
-    onContinue: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: MementoViewModel = hiltViewModel(),
 ) {
     val dateStr = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
         .format(Date(memento.timestamp))
@@ -133,7 +135,7 @@ fun MementoScreen(
 
         PxButton(
             text     = "Continue",
-            onClick  = onContinue,
+            onClick  = viewModel::onContinue,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(28.dp))
