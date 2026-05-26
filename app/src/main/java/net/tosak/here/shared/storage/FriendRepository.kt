@@ -21,4 +21,9 @@ class FriendRepository @Inject constructor(
             )
         )
     }
+
+    /** Handshake-persisted friend, or null for demo/sample friends not in Room. */
+    suspend fun byId(id: String): FriendEntity? = dao.byId(id)
+
+    suspend fun remove(friendId: String) = dao.deleteById(friendId)
 }

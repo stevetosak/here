@@ -16,5 +16,10 @@ class AppStorage @Inject constructor(@ApplicationContext context: Context) {
         const val KEY_TOKEN = "auth_token"
         const val KEY_HANDLE = "user_handle"
         const val KEY_PRESENCE_ENABLED = "presence_enabled"
+
+        // ── Pings (global) ──────────────────────────────────────────────────────
+        const val KEY_PINGS_PAUSED = "pings_paused"
+        const val KEY_PING_HOURS_START = "ping_hours_start"  // minutes-of-day, default 0
+        const val KEY_PING_HOURS_END = "ping_hours_end"      // minutes-of-day, default 1440 (all hours)
     }
 }

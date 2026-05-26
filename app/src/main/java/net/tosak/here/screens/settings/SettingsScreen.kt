@@ -27,6 +27,7 @@ fun SettingsScreen(
     val handle = viewModel.handle
     var haptic by remember { mutableStateOf(true) }
     var sound  by remember { mutableStateOf(false) }
+    var pingsPaused by remember { mutableStateOf(viewModel.pingsPaused) }
 
     Column(
         modifier = Modifier
@@ -76,9 +77,30 @@ fun SettingsScreen(
             // Pings
             Mono("PINGS", size = 10.sp, color = EmberMuted, letterSpacing = 0.3.sp)
             Spacer(Modifier.height(8.dp))
+            SettingToggle(
+                "Pause all pings",
+                "silences auto + incoming pings everywhere",
+                pingsPaused,
+                { pingsPaused = it; viewModel.setPingsPaused(it) },
+            )
             SettingToggle("Haptic on ping", null, haptic, { haptic = it })
             SettingToggle("Sound on ping", null, sound, { sound = it })
-            SettingRow("Quiet hours", "00:00 – 08:00", "pings silenced while you sleep")
+            SettingRow("Active hours", viewModel.activeHoursLabel, "auto pings only fire inside this window")
+
+            Spacer(Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, EmberAccent)
+                    .clickable(
+                        indication        = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick           = viewModel::simulateIncomingPing,
+                    )
+                    .padding(14.dp),
+            ) {
+                Mono("↳ SIMULATE INCOMING PING", size = 11.sp, color = EmberAccent, letterSpacing = 0.22.sp)
+            }
 
             Spacer(Modifier.height(20.dp))
             // Session
@@ -124,65 +146,4 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(32.dp))
     }
-}
-
-@Composable
-private fun SettingRow(label: String, value: String, hint: String? = null) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment     = Alignment.Top,
-    ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
-            Text(label, style = TextStyle(fontFamily = JetBrainsMono, fontSize = 13.sp, color = EmberFg))
-            hint?.let { Spacer(Modifier.height(2.dp)); Mono(it, size = 9.sp, color = EmberMuted, letterSpacing = 0.10.sp) }
-        }
-        Mono(value, size = 11.sp, color = EmberAccent, letterSpacing = 0.18.sp)
-    }
-    Rule(dashed = true, color = EmberFg.copy(alpha = 0.13f))
-}
-
-@Composable
-private fun SettingToggle(
-    label: String,
-    hint: String?,
-    value: Boolean,
-    onChange: (Boolean) -> Unit,
-    disabled: Boolean = false,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp)
-            .then(if (disabled) Modifier else Modifier),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment     = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 16.dp).then(if (disabled) Modifier else Modifier)) {
-            Text(label, style = TextStyle(fontFamily = JetBrainsMono, fontSize = 13.sp, color = if (disabled) EmberMuted else EmberFg))
-            hint?.let { Spacer(Modifier.height(2.dp)); Mono(it, size = 9.sp, color = EmberMuted, letterSpacing = 0.10.sp) }
-        }
-        // Minimal toggle
-        Box(
-            modifier = Modifier
-                .size(width = 50.dp, height = 22.dp)
-                .background(if (value && !disabled) EmberAccent else Color.Transparent)
-                .border(1.dp, if (disabled) EmberMuted else EmberFg)
-                .then(if (!disabled) Modifier.clickable(
-                    indication        = null,
-                    interactionSource = remember { MutableInteractionSource() },
-                ) { onChange(!value) } else Modifier),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(width = 19.dp, height = 18.dp)
-                    .padding(1.dp)
-                    .offset(x = if (value) 29.dp else 1.dp)
-                    .background(if (value) EmberBg else if (disabled) EmberMuted else EmberFg),
-            )
-        }
-    }
-    Rule(dashed = true, color = EmberFg.copy(alpha = 0.13f))
 }

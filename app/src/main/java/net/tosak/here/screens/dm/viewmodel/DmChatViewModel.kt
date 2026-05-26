@@ -79,6 +79,11 @@ class DmChatViewModel @Inject constructor(
         }
     }
 
+    fun onOpenProfile() {
+        // activeFriend is already set; the profile reads it from AppStateRepository.
+        eventBus.emit(Event.Nav.NavigateTo(net.tosak.here.shared.model.AppScreen.FRIEND_PROFILE))
+    }
+
     fun onBack() {
         typingJob?.cancel()
         _isTyping.value = false

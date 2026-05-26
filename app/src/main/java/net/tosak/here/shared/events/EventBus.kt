@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import net.tosak.here.shared.model.AppScreen
 import net.tosak.here.shared.model.Friend
+import net.tosak.here.shared.ping.PingEvent
 import net.tosak.here.screens.handshake.viewmodel.MementoData
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,6 +39,15 @@ sealed interface Event {
         data class ActiveFriendChanged(val friend: Friend) : AppState
         data class ChatSeedChanged(val seed: String?) : AppState
         data class PendingMementoChanged(val memento: MementoData?) : AppState
+    }
+
+    /** Incoming pings (auto or manual) the receiver should be notified about. */
+    sealed interface Ping : Event {
+        data class Incoming(
+            val ping: PingEvent,
+            val friend: Friend,
+            val groupedCount: Int = 1,
+        ) : Ping
     }
 }
 

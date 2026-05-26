@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import net.tosak.here.shared.storage.DmMessageDao
 import net.tosak.here.shared.storage.FriendDao
+import net.tosak.here.shared.storage.FriendPingSettingsDao
 import net.tosak.here.shared.storage.HereDatabase
 import net.tosak.here.shared.storage.PostDao
 import javax.inject.Singleton
@@ -32,4 +33,8 @@ object DatabaseModule {
 
     @Provides
     fun provideFriendDao(db: HereDatabase): FriendDao = db.friendDao()
+
+    @Provides
+    fun provideFriendPingSettingsDao(db: HereDatabase): FriendPingSettingsDao =
+        db.friendPingSettingsDao()
 }

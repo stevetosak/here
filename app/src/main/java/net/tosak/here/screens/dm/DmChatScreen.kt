@@ -84,8 +84,14 @@ fun DmChatScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment     = Alignment.Top,
         ) {
-            Column {
-                Mono("DM WITH", size = 10.sp, color = EmberMuted, letterSpacing = 0.3.sp)
+            Column(
+                modifier = Modifier.clickable(
+                    indication        = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick           = viewModel::onOpenProfile,
+                ),
+            ) {
+                Mono("DM WITH · TAP FOR PROFILE", size = 10.sp, color = EmberMuted, letterSpacing = 0.3.sp)
                 Spacer(Modifier.height(2.dp))
                 Text(
                     "@${friend?.id ?: "—"}",

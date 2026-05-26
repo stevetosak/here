@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import net.tosak.here.shared.model.Friend
 import net.tosak.here.shared.components.*
 import net.tosak.here.ui.theme.*
+import net.tosak.here.screens.mapscreen.components.FriendActionSheet
 import net.tosak.here.screens.mapscreen.viewmodel.MapViewModel
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.DropdownMenu
@@ -48,7 +49,14 @@ fun MapScreen(
     val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
     val friends      by viewModel.friends.collectAsStateWithLifecycle()
     val activePost   by viewModel.activePost.collectAsStateWithLifecycle()
+    val selectedFriend by viewModel.selectedFriend.collectAsStateWithLifecycle()
+    val pingUiState  by viewModel.pingUiState.collectAsStateWithLifecycle()
     val isLocationEnabled = rememberLocationEnabled()
+
+    // Kick off the demo auto-ping arrival simulation while the map is live.
+    LaunchedEffect(presenceOn) {
+        if (presenceOn) viewModel.startArrivalSimulation()
+    }
 
     // ── Runtime permission + location updates lifecycle ───────────────────────
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -173,6 +181,18 @@ fun MapScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+        }
+
+        // ── Friend quick-action sheet (tap a marker) ──────────────────────────
+        selectedFriend?.let { f ->
+            FriendActionSheet(
+                friend     = f,
+                pingState  = pingUiState,
+                onChat     = viewModel::onChat,
+                onPing     = viewModel::onComposePing,
+                onSendPing = viewModel::onSendPing,
+                onDismiss  = viewModel::dismissSheet,
+            )
         }
     }
 }

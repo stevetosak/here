@@ -1,6 +1,7 @@
 package net.tosak.here.shared.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -13,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -235,4 +237,66 @@ fun PxButton(
             ),
         )
     }
+}
+
+// ─── Settings row (label + value, read-only) ──────────────────────────────────
+@Composable
+fun SettingRow(label: String, value: String, hint: String? = null) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment     = Alignment.Top,
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+            Text(label, style = TextStyle(fontFamily = JetBrainsMono, fontSize = 13.sp, color = EmberFg))
+            hint?.let { Spacer(Modifier.height(2.dp)); Mono(it, size = 9.sp, color = EmberMuted, letterSpacing = 0.10.sp) }
+        }
+        Mono(value, size = 11.sp, color = EmberAccent, letterSpacing = 0.18.sp)
+    }
+    Rule(dashed = true, color = EmberFg.copy(alpha = 0.13f))
+}
+
+// ─── Settings toggle (label + minimal switch) ─────────────────────────────────
+@Composable
+fun SettingToggle(
+    label: String,
+    hint: String?,
+    value: Boolean,
+    onChange: (Boolean) -> Unit,
+    disabled: Boolean = false,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment     = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+            Text(label, style = TextStyle(fontFamily = JetBrainsMono, fontSize = 13.sp, color = if (disabled) EmberMuted else EmberFg))
+            hint?.let { Spacer(Modifier.height(2.dp)); Mono(it, size = 9.sp, color = EmberMuted, letterSpacing = 0.10.sp) }
+        }
+        // Minimal toggle
+        Box(
+            modifier = Modifier
+                .size(width = 50.dp, height = 22.dp)
+                .background(if (value && !disabled) EmberAccent else Color.Transparent)
+                .border(1.dp, if (disabled) EmberMuted else EmberFg)
+                .then(if (!disabled) Modifier.clickable(
+                    indication        = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                ) { onChange(!value) } else Modifier),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 19.dp, height = 18.dp)
+                    .padding(1.dp)
+                    .offset(x = if (value) 29.dp else 1.dp)
+                    .background(if (value) EmberBg else if (disabled) EmberMuted else EmberFg),
+            )
+        }
+    }
+    Rule(dashed = true, color = EmberFg.copy(alpha = 0.13f))
 }
