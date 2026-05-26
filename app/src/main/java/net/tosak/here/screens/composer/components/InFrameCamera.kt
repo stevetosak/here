@@ -84,6 +84,12 @@ fun InFrameCamera(
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     val cameraState = remember { mutableStateOf<Camera?>(null) }
 
+    // rememberUpdatedState keeps the lambda inside LaunchedEffect(captureRequested) in sync
+    // with the latest cameraSelector without restarting the effect on every recomposition.
+    // Without this, the closure captures the selector at first launch and never updates,
+    // causing the front/back flip to be wrong after the first camera switch.
+    val currentCameraSelector by rememberUpdatedState(cameraSelector)
+
     // ── Permission ─────────────────────────────────────────────────────────────
     var hasCamPermission by remember {
         mutableStateOf(
@@ -129,7 +135,7 @@ fun InFrameCamera(
                     override fun onImageSaved(out: ImageCapture.OutputFileResults) {
                         val rotated =
                             File(file.absolutePath)
-                                .toRotatedBitmap(cameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA)
+                                .toRotatedBitmap(currentCameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA)
                         if (rotated != null) {
                             FileOutputStream(file).use { out ->
                                 rotated.compress(Bitmap.CompressFormat.JPEG, 95, out)
