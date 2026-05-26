@@ -126,7 +126,11 @@ private fun FriendListRow(row: FriendRow, onClick: () -> Unit) {
         }
         Spacer(Modifier.width(12.dp))
         Column(horizontalAlignment = Alignment.End) {
-            Mono("${row.friend.dist}M", size = 9.sp, color = EmberMuted)
+            Mono(
+                text  = if (row.friend.dist > 0) "${row.friend.dist}M" else "—",
+                size  = 9.sp,
+                color = EmberMuted,
+            )
             Spacer(Modifier.height(4.dp))
             Mono(relativeTime(row.lastMessage?.sentAt), size = 8.sp, color = EmberMuted)
         }

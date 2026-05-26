@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import net.tosak.here.shared.events.Event
 import net.tosak.here.shared.events.EventBus
 import net.tosak.here.shared.model.AppScreen
+import net.tosak.here.shared.storage.FriendRepository
 import javax.inject.Inject
 
 /**
@@ -28,6 +29,7 @@ import javax.inject.Inject
 class HandshakeViewModel @Inject constructor(
     private val ble: BleHandshakeManager,
     private val eventBus: EventBus,
+    private val friendRepository: FriendRepository,
 ) : ViewModel() {
 
     companion object {
@@ -110,6 +112,13 @@ class HandshakeViewModel @Inject constructor(
     // ── Navigation ────────────────────────────────────────────────────────────
 
     fun onConfirmed(memento: MementoData) {
+        viewModelScope.launch {
+            friendRepository.addFromHandshake(
+                nickname  = memento.friendNickname,
+                location  = memento.location,
+                timestamp = memento.timestamp,
+            )
+        }
         eventBus.emit(Event.AppState.PendingMementoChanged(memento))
         eventBus.emit(Event.Nav.ReplaceTop(AppScreen.MEMENTO))
     }
