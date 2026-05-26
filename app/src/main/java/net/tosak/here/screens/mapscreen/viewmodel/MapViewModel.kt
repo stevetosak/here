@@ -72,6 +72,7 @@ class MapViewModel @Inject constructor(
     fun onCompose()   { eventBus.emit(Event.Nav.NavigateTo(AppScreen.COMPOSER)) }
     fun onOwnPost()   { eventBus.emit(Event.Nav.NavigateTo(AppScreen.OWN_POST)) }
     fun onSettings()  { eventBus.emit(Event.Nav.NavigateTo(AppScreen.SETTINGS)) }
+    fun onFriends()   { eventBus.emit(Event.Nav.NavigateTo(AppScreen.FRIENDS)) }
     fun onHandshake() { eventBus.emit(Event.Nav.NavigateTo(AppScreen.HANDSHAKE)) }
 
     fun onFriend(friend: Friend) {

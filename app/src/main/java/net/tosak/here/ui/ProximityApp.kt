@@ -17,6 +17,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import net.tosak.here.shared.model.*
 import net.tosak.here.screens.chat.ChatScreen
 import net.tosak.here.screens.composer.ComposerScreen
+import net.tosak.here.screens.dm.DmChatScreen
+import net.tosak.here.screens.friends.FriendsListScreen
 import net.tosak.here.screens.composer.components.PostPhotoScreen
 import net.tosak.here.screens.mapscreen.MapScreen
 import net.tosak.here.screens.ping.PingOverlay
@@ -100,6 +102,10 @@ fun ProximityApp() {
                 AppScreen.HANDSHAKE -> HandshakeScreen()
 
                 AppScreen.MEMENTO -> pendingMemento?.let { MementoScreen(memento = it) }
+
+                AppScreen.FRIENDS -> FriendsListScreen()
+
+                AppScreen.DM -> DmChatScreen()
             }
         }
 
