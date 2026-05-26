@@ -6,11 +6,14 @@ package net.tosak.here.screens.handshake.viewmodel
  * @param sessionToken  UUID the remote device embedded in its advertisement.
  * @param rssi          Running average of RSSI readings (dBm).
  * @param address       BLE device address (for de-duplication on Android; unused on iOS).
+ * @param username      Handle decoded from the BLE advertisement payload.
+ *                      Empty string when the peer runs an older build that doesn't include it.
  */
 data class DiscoveredDevice(
     val sessionToken: String,
     val rssi: Int,
     val address: String,
+    val username: String = "",
 )
 
 /**
@@ -43,10 +46,14 @@ sealed class HandshakeState {
      * A nearby peer has been detected at sufficient RSSI.
      * Awaiting server confirmation of mutual selection.
      * Haptic pulses quicken.
+     *
+     * [username] is the handle decoded from the peer's BLE advertisement; may be empty
+     * if the peer runs an older build.
      */
     data class LockOn(
         val sessionToken: String,
         val rssi: Int,
+        val username: String = "",
     ) : HandshakeState()
 
     /**

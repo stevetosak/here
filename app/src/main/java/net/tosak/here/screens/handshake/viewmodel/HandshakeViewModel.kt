@@ -9,9 +9,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import net.tosak.here.shared.auth.AuthRepository
 import net.tosak.here.shared.events.Event
 import net.tosak.here.shared.events.EventBus
 import net.tosak.here.shared.model.AppScreen
+import net.tosak.here.shared.storage.FriendRepository
 import javax.inject.Inject
 
 /**
@@ -28,6 +30,8 @@ import javax.inject.Inject
 class HandshakeViewModel @Inject constructor(
     private val ble: BleHandshakeManager,
     private val eventBus: EventBus,
+    private val friendRepository: FriendRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     companion object {
@@ -110,6 +114,13 @@ class HandshakeViewModel @Inject constructor(
     // ── Navigation ────────────────────────────────────────────────────────────
 
     fun onConfirmed(memento: MementoData) {
+        viewModelScope.launch {
+            friendRepository.addFromHandshake(
+                nickname  = memento.friendNickname,
+                location  = memento.location,
+                timestamp = memento.timestamp,
+            )
+        }
         eventBus.emit(Event.AppState.PendingMementoChanged(memento))
         eventBus.emit(Event.Nav.ReplaceTop(AppScreen.MEMENTO))
     }
@@ -128,7 +139,7 @@ class HandshakeViewModel @Inject constructor(
     // ── Private scan logic ────────────────────────────────────────────────────
 
     private fun startBle() {
-        ble.startAdvertising()
+        ble.startAdvertising(authRepository.handle)
         ble.startScanning()
     }
 
@@ -146,7 +157,7 @@ class HandshakeViewModel @Inject constructor(
                 if (!groupMode) {
                     val best = ble.getBestCandidate()
                     if (best != null) {
-                        _state.value = HandshakeState.LockOn(best.sessionToken, best.rssi)
+                        _state.value = HandshakeState.LockOn(best.sessionToken, best.rssi, best.username)
                         pollJob = null
                         confirmWithServer(listOf(best))
                         return@launch
@@ -157,7 +168,7 @@ class HandshakeViewModel @Inject constructor(
                     if (all.isNotEmpty()) {
                         // Show lock-on for the closest one; server handles the full list
                         val primary = all.first()
-                        _state.value = HandshakeState.LockOn(primary.sessionToken, primary.rssi)
+                        _state.value = HandshakeState.LockOn(primary.sessionToken, primary.rssi, primary.username)
                         pollJob = null
                         confirmWithServer(all)
                         return@launch
@@ -173,17 +184,26 @@ class HandshakeViewModel @Inject constructor(
      *
      * In production, replace with:
      * 1. POST `/handshake/report` with our session token + candidate token(s)
-     * 2. Await WebSocket push `handshake.confirmed` with friend nickname + location
+     * 2. Await WebSocket push `handshake.confirmed` with resolved username + location
+     *
+     * Once the backend is live, the username no longer needs to come from the BLE payload —
+     * the server will resolve it from the session token.  At that point the username bytes
+     * can be removed from the advertisement and [BleHandshakeManager.buildPayload] simplified.
      */
     private fun confirmWithServer(candidates: List<DiscoveredDevice>) {
         serverJob?.cancel()
         serverJob = viewModelScope.launch {
             delay(SIMULATED_SERVER_MS)
 
-            // Pick a plausible-looking mock result
+            // Use the username decoded directly from the BLE advertisement.
+            // Fall back to a random sample name only when the peer didn't include one
+            // (e.g. an older build or a test device without a username field).
+            val primary = candidates.first()
+            val resolvedName = primary.username.ifBlank { SAMPLE_NICKNAMES.random() }
+
             val memento = MementoData(
-                friendNickname = SAMPLE_NICKNAMES.random(),
-                location       = SAMPLE_LOCATIONS.random(),
+                friendNickname = resolvedName,
+                location       = SAMPLE_LOCATIONS.random(),   // still mocked until backend is live
                 timestamp      = System.currentTimeMillis(),
             )
             _state.value = HandshakeState.Confirmed(memento)

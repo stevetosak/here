@@ -12,6 +12,7 @@ import net.tosak.here.screens.handshake.viewmodel.MementoData
 import net.tosak.here.shared.events.Event
 import net.tosak.here.shared.events.EventBus
 import net.tosak.here.shared.model.Friend
+import net.tosak.here.shared.storage.ChatRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,6 +33,7 @@ import javax.inject.Singleton
 @Singleton
 class AppStateRepository @Inject constructor(
     eventBus: EventBus,
+    chatRepository: ChatRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -55,5 +57,6 @@ class AppStateRepository @Inject constructor(
                     }
                 }
         }
+        scope.launch { chatRepository.seedIfEmpty() }
     }
 }

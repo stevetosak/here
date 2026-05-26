@@ -18,9 +18,14 @@ import javax.inject.Inject
  * ## Advertisement layout
  * - **Primary data** — app service UUID (filter anchor)
  * - **Scan response** — manufacturer data: [APP_MAGIC (2 bytes)] + [session token (16 bytes)]
+ *   + [username length (1 byte)] + [username bytes (0–8 bytes, UTF-8)]
  *
- * No username or persistent identifier is included in the raw BLE payload.
- * Identity is resolved server-side after mutual session-token confirmation.
+ * The username field occupies the 9 bytes that were previously unused in the 31-byte scan
+ * response packet.  Peers running older builds (no username bytes) are still accepted; their
+ * [DiscoveredDevice.username] will be an empty string.
+ *
+ * When the backend is ready, the username bytes can be removed and identity resolved
+ * server-side from the session token alone — the layout shrinks back gracefully.
  *
  * ## iOS compatibility note
  * iOS randomises MAC addresses; matching must rely on the session token embedded in the
@@ -55,6 +60,13 @@ public class BleHandshakeManager @Inject constructor(
         val APP_MAGIC = byteArrayOf(0x48, 0x52)  // 'H', 'R'
 
         /**
+         * Maximum bytes reserved for the username in the scan-response manufacturer data.
+         * The 31-byte packet leaves exactly 9 bytes after magic + token; we use 1 for the
+         * length prefix, leaving 8 bytes of handle data (covers all realistic "here" handles).
+         */
+        const val MAX_USERNAME_BYTES = 8
+
+        /**
          * Ultra-low TX power intentionally limits effective range to ≈ 1–2 m.
          * Connection requires physical closeness.
          */
@@ -78,6 +90,9 @@ public class BleHandshakeManager @Inject constructor(
 
     /** Per-token RSSI history. Keys are remote session-token strings. */
     private val rssiReadings = mutableMapOf<String, MutableList<Int>>()
+
+    /** Last-seen username for each discovered token, decoded from the BLE payload. */
+    private val usernameByToken = mutableMapOf<String, String>()
 
     // ── BLE handles ───────────────────────────────────────────────────────────
 
@@ -115,11 +130,20 @@ public class BleHandshakeManager @Inject constructor(
     fun reset() {
         sessionToken = UUID.randomUUID()
         rssiReadings.clear()
+        usernameByToken.clear()
     }
 
-    /** Start BLE advertising. Caller must hold BLUETOOTH_ADVERTISE (API 31+). */
+    /**
+     * Start BLE advertising.
+     *
+     * @param username  The local user's handle to include in the scan-response payload so
+     *                  nearby peers can identify this device without a server round-trip.
+     *                  Truncated to [MAX_USERNAME_BYTES] if longer.
+     *
+     * Caller must hold BLUETOOTH_ADVERTISE (API 31+).
+     */
     @SuppressLint("MissingPermission")
-    fun startAdvertising() {
+    fun startAdvertising(username: String) {
         val adapter = btAdapter ?: return
         if (!adapter.isEnabled) return
         advertiser = adapter.bluetoothLeAdvertiser ?: return
@@ -138,10 +162,14 @@ public class BleHandshakeManager @Inject constructor(
             .addServiceUuid(APP_PARCEL_UUID)
             .build()
 
-        // Scan response: session token (so it fits the 31-byte primary packet)
+        // Scan response: magic + session token + username
+        // Layout: [APP_MAGIC 2B][token 16B][usernameLen 1B][username 0-8B]
+        // The 31-byte scan-response budget breaks down as:
+        //   4B AD overhead (length + type + manufacturer ID) + 27B data
+        //   → magic(2) + token(16) + usernameLen(1) + username(≤8) = ≤27B ✓
         val scanResponseData = AdvertiseData.Builder()
             .setIncludeDeviceName(false)
-            .addManufacturerData(MANUFACTURER_ID, APP_MAGIC + sessionToken.toByteArray())
+            .addManufacturerData(MANUFACTURER_ID, buildPayload(username))
             .build()
 
         val cb = object : AdvertiseCallback() {
@@ -208,7 +236,12 @@ public class BleHandshakeManager @Inject constructor(
             ?.let { (token, readings) ->
                 val avg = readings.average().toInt()
                 if (avg >= LOCK_ON_RSSI_THRESHOLD)
-                    DiscoveredDevice(sessionToken = token, rssi = avg, address = "")
+                    DiscoveredDevice(
+                        sessionToken = token,
+                        rssi = avg,
+                        address = "",
+                        username = usernameByToken[token] ?: "",
+                    )
                 else null
             }
 
@@ -222,7 +255,12 @@ public class BleHandshakeManager @Inject constructor(
             .mapNotNull { (token, readings) ->
                 val avg = readings.average().toInt()
                 if (avg >= LOCK_ON_RSSI_THRESHOLD)
-                    DiscoveredDevice(sessionToken = token, rssi = avg, address = "")
+                    DiscoveredDevice(
+                        sessionToken = token,
+                        rssi = avg,
+                        address = "",
+                        username = usernameByToken[token] ?: "",
+                    )
                 else null
             }
             .sortedByDescending { it.rssi }
@@ -240,24 +278,60 @@ public class BleHandshakeManager @Inject constructor(
         if (!mfData.sliceArray(APP_MAGIC.indices).contentEquals(APP_MAGIC)) return
 
         // Decode session token UUID
-        val tokenBytes = mfData.copyOfRange(APP_MAGIC.size, APP_MAGIC.size + 16)
+        val tokenStart = APP_MAGIC.size
+        val tokenBytes = mfData.copyOfRange(tokenStart, tokenStart + 16)
         val token = tokenBytes.toUuid().toString()
 
         // Ignore echoes of our own advertisement
         if (token == mySessionToken) return
+
+        // Decode username (present in builds that include it; absent = empty string)
+        val usernameStart = tokenStart + 16
+        val username = if (mfData.size > usernameStart) {
+            val len = mfData[usernameStart].toInt() and 0xFF   // unsigned
+            val dataStart = usernameStart + 1
+            val dataEnd = minOf(dataStart + len, mfData.size)
+            if (dataEnd > dataStart) String(mfData, dataStart, dataEnd - dataStart, Charsets.UTF_8)
+            else ""
+        } else ""
 
         // Accumulate RSSI (keep last 10 per token to track movement)
         val readings = rssiReadings.getOrPut(token) { mutableListOf() }
         readings.add(result.rssi)
         if (readings.size > 10) readings.removeAt(0)
 
+        // Keep the most recent username for this token so getBestCandidate() can return it
+        if (username.isNotEmpty()) usernameByToken[token] = username
+
         _discoveredFlow.tryEmit(
             DiscoveredDevice(
                 sessionToken = token,
                 rssi = readings.average().toInt(),
                 address = result.device?.address ?: "unknown",
+                username = username,
             )
         )
+    }
+
+    // ── Payload builder ───────────────────────────────────────────────────────
+
+    /**
+     * Builds the manufacturer data payload for the scan-response advertisement.
+     *
+     * Format: `[APP_MAGIC 2B][token 16B][usernameLen 1B][username 0–8B]`
+     *
+     * The username is truncated to [MAX_USERNAME_BYTES] bytes of UTF-8 before encoding.
+     * Taking a byte-level slice (not char-level) avoids splitting multi-byte characters —
+     * "here" handles are ASCII-only in practice, so this is purely defensive.
+     */
+    private fun buildPayload(username: String): ByteArray {
+        val usernameBytes = username
+            .toByteArray(Charsets.UTF_8)
+            .let { if (it.size > MAX_USERNAME_BYTES) it.copyOf(MAX_USERNAME_BYTES) else it }
+        return APP_MAGIC +
+                sessionToken.toByteArray() +
+                byteArrayOf(usernameBytes.size.toByte()) +
+                usernameBytes
     }
 
     // ── UUID ↔ ByteArray helpers ──────────────────────────────────────────────

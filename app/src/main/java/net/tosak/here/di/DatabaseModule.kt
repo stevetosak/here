@@ -7,6 +7,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import net.tosak.here.shared.storage.DmMessageDao
+import net.tosak.here.shared.storage.FriendDao
 import net.tosak.here.shared.storage.HereDatabase
 import net.tosak.here.shared.storage.PostDao
 import javax.inject.Singleton
@@ -24,4 +26,10 @@ object DatabaseModule {
 
     @Provides
     fun providePostDao(db: HereDatabase): PostDao = db.postDao()
+
+    @Provides
+    fun provideDmMessageDao(db: HereDatabase): DmMessageDao = db.dmMessageDao()
+
+    @Provides
+    fun provideFriendDao(db: HereDatabase): FriendDao = db.friendDao()
 }

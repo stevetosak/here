@@ -21,7 +21,7 @@ data class Friend(
 enum class FriendStatus { JUST_POSTED, LIVE }
 
 enum class AppScreen {
-    ONBOARDING, MAP, PRESENCE, COMPOSER, POST, OWN_POST, CHAT, SETTINGS, HANDSHAKE, MEMENTO,POST_PHOTO
+    ONBOARDING, MAP, PRESENCE, COMPOSER, POST, OWN_POST, CHAT, SETTINGS, HANDSHAKE, MEMENTO, POST_PHOTO, FRIENDS, DM
 }
 
 // ── Demo anchor — Debar Maalo, Skopje ─────────────────────────────────────────

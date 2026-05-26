@@ -102,7 +102,7 @@ fun MapScreen(
                 youLat     = youLat!!,
                 youLng     = youLng!!,
                 onSettings = viewModel::onSettings,
-                onChat     = {},
+                onChat     = viewModel::onFriends,
                 modifier   = Modifier.align(Alignment.TopCenter),
             )
         } else {
@@ -232,7 +232,7 @@ private fun MapTopBar(
             ) {
                 MapMenuItem(label = "⚙  SETTINGS") { menuExpanded = false; onSettings() }
                 Box(Modifier.fillMaxWidth().height(1.dp).background(EmberBorder))
-                MapMenuItem(label = "✉  MSGS")     { menuExpanded = false; onChat() }
+                MapMenuItem(label = "✉  FRIENDS")  { menuExpanded = false; onChat() }
                 // ── Add future menu items here, separated by a Box(…) divider ──
             }
         }
