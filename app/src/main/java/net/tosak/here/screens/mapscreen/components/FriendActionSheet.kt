@@ -33,7 +33,8 @@ private const val INTENT_MAX = 40
 /**
  * Bottom sheet shown when a friend marker is tapped. In radius → chat + ping
  * (ping reveals an optional intent field); outside radius → chat only, with a
- * distance label instead of the ping button.
+ * distance label instead of the ping button. When the friend has an active post,
+ * a VIEW POST button is shown above the chat/ping row.
  */
 @Composable
 fun FriendActionSheet(
@@ -42,6 +43,7 @@ fun FriendActionSheet(
     onChat: () -> Unit,
     onPing: () -> Unit,
     onSendPing: (String) -> Unit,
+    onViewPost: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val inRadius = friend.dist <= ProximityRepository.RADIUS_M
@@ -84,8 +86,8 @@ fun FriendActionSheet(
                         style = TextStyle(fontFamily = JetBrainsMono, fontSize = 22.sp, color = EmberFg),
                     )
                     Spacer(Modifier.height(2.dp))
-                    val presence = if (friend.status == FriendStatus.JUST_POSTED) "JUST POSTED" else "LIVE"
-                    Mono(presence, size = 9.sp, color = EmberAccent, letterSpacing = 0.18.sp)
+                    val presence = if (friend.post != null) "JUST POSTED" else "LIVE"
+                    Mono(presence, size = 9.sp, color = if (friend.post != null) EmberAccent else EmberMuted, letterSpacing = 0.18.sp)
                 }
                 Mono("${friend.dist}M AWAY", size = 9.sp, color = EmberMuted)
             }
@@ -101,6 +103,15 @@ fun FriendActionSheet(
                     onSend        = { onSendPing(intent) },
                 )
             } else {
+                if (friend.post != null) {
+                    PxButton(
+                        text     = "⊡ VIEW POST",
+                        onClick  = onViewPost,
+                        modifier = Modifier.fillMaxWidth(),
+                        primary  = true,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PxButton("CHAT", onClick = onChat, modifier = Modifier.weight(1f))
                     if (inRadius) {

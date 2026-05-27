@@ -101,6 +101,13 @@ class MapViewModel @Inject constructor(
         dismissSheet()
     }
 
+    fun onViewPost() {
+        val f = _selectedFriend.value ?: return
+        eventBus.emit(Event.AppState.ActiveFriendChanged(f))
+        eventBus.emit(Event.Nav.NavigateTo(AppScreen.POST))
+        dismissSheet()
+    }
+
     fun onComposePing() { _pingUiState.value = PingUiState.Composing }
 
     fun onSendPing(intent: String) {

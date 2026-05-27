@@ -61,7 +61,7 @@ class FriendProfileViewModel @Inject constructor(
         return if (entity != null) {
             Memento(location = entity.location, connectedAt = entity.addedAt, fromHandshake = true)
         } else {
-            Memento(location = f.post.place ?: "Debar Maalo", connectedAt = null, fromHandshake = false)
+            Memento(location = f.post?.place ?: "Debar Maalo", connectedAt = null, fromHandshake = false)
         }
     }
 

@@ -14,7 +14,7 @@ data class Friend(
     val lat: Double,     // WGS-84 latitude
     val lng: Double,     // WGS-84 longitude
     val dist: Int,       // metres from current user
-    val post: FriendPost,
+    val post: FriendPost?,
     val status: FriendStatus,
 )
 
@@ -41,7 +41,7 @@ private data class FriendOffset(
     val dLat: Double,   // signed degrees latitude
     val dLng: Double,   // signed degrees longitude
     val dist: Int,      // approximate metres (label only)
-    val post: FriendPost,
+    val post: FriendPost?,
     val status: FriendStatus,
 )
 
@@ -57,21 +57,21 @@ private val SAMPLE_OFFSETS = listOf(
         id = "kris", mark = "K",
         dLat = +0.0013, dLng = +0.0013,
         dist = 180,
-        post   = FriendPost(PostKind.TEXT, "walking down korzo. anyone around?", null),
+        post   = null,
         status = FriendStatus.LIVE,
     ),
     FriendOffset(
         id = "mira", mark = "M",
         dLat = -0.0029, dLng = +0.0000,
         dist = 320,
-        post   = FriendPost(PostKind.TEXT, "met someone interesting today.", "Park"),
+        post   = null,
         status = FriendStatus.LIVE,
     ),
     FriendOffset(
         id = "noa", mark = "N",
         dLat = +0.0030, dLng = +0.0027,   // ~410 m NE — just outside radius
         dist = 410,
-        post   = FriendPost(PostKind.TEXT, "late dinner at debarca. plates landed.", "Debarca"),
+        post   = null,
         status = FriendStatus.LIVE,
     ),
 )

@@ -36,6 +36,8 @@ fun PostViewScreen(
         }
     }
 
+    val post = friend.post ?: return
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -76,7 +78,7 @@ fun PostViewScreen(
                 .padding(22.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            when (friend.post.kind) {
+            when (post.kind) {
                 PostKind.PHOTO -> {
                     Box(
                         modifier = Modifier
@@ -100,17 +102,17 @@ fun PostViewScreen(
                 }
                 PostKind.TEXT -> {
                     Text(
-                        "\"${friend.post.caption}\"",
+                        "\"${post.caption}\"",
                         style = TextStyle(fontFamily = JetBrainsMono, fontSize = 22.sp, lineHeight = 30.sp, color = EmberFg),
                         modifier = Modifier.padding(vertical = 12.dp),
                     )
                 }
             }
 
-            if (friend.post.kind != PostKind.TEXT && friend.post.caption.isNotBlank()) {
-                Text(friend.post.caption, style = TextStyle(fontFamily = JetBrainsMono, fontSize = 13.sp, color = EmberFg, lineHeight = 20.sp))
+            if (post.kind != PostKind.TEXT && post.caption.isNotBlank()) {
+                Text(post.caption, style = TextStyle(fontFamily = JetBrainsMono, fontSize = 13.sp, color = EmberFg, lineHeight = 20.sp))
             }
-            friend.post.place?.let {
+            post.place?.let {
                 Mono("↳ ${it.uppercase()}", size = 10.sp, color = EmberMuted, letterSpacing = 0.18.sp)
             }
 

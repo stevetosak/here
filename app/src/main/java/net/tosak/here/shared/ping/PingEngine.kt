@@ -113,7 +113,7 @@ class PingEngine @Inject constructor(
             type = type,
             intentMessage = intent,
             timestamp = System.currentTimeMillis(),
-            location = friend.post.place ?: "nearby",
+            location = friend.post?.place ?: "nearby",
         )
         eventBus.emit(Event.Ping.Incoming(event, friend, count))
     }

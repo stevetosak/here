@@ -186,12 +186,13 @@ fun MapScreen(
         // ── Friend quick-action sheet (tap a marker) ──────────────────────────
         selectedFriend?.let { f ->
             FriendActionSheet(
-                friend     = f,
-                pingState  = pingUiState,
-                onChat     = viewModel::onChat,
-                onPing     = viewModel::onComposePing,
-                onSendPing = viewModel::onSendPing,
-                onDismiss  = viewModel::dismissSheet,
+                friend      = f,
+                pingState   = pingUiState,
+                onChat      = viewModel::onChat,
+                onPing      = viewModel::onComposePing,
+                onSendPing  = viewModel::onSendPing,
+                onViewPost  = viewModel::onViewPost,
+                onDismiss   = viewModel::dismissSheet,
             )
         }
     }
