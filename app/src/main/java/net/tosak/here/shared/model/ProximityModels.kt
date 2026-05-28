@@ -4,6 +4,7 @@ data class FriendPost(
     val kind: PostKind,
     val caption: String,
     val place: String?,
+    val photoUrl: String? = null,
 )
 
 enum class PostKind { PHOTO, TEXT }
@@ -50,7 +51,35 @@ private val SAMPLE_OFFSETS = listOf(
         id = "alex", mark = "A",
         dLat = +0.0003, dLng = -0.0004,
         dist = 47,
-        post   = FriendPost(PostKind.PHOTO, "patio. one chair open.", "Caffe Vinoteka"),
+        post = FriendPost(
+            kind     = PostKind.PHOTO,
+            caption  = "patio. one chair open.",
+            place    = "Caffe Vinoteka",
+            photoUrl = "https://picsum.photos/seed/alex/800/600",
+        ),
+        status = FriendStatus.JUST_POSTED,
+    ),
+    FriendOffset(
+        id = "sam", mark = "S",
+        dLat = +0.0007, dLng = +0.0005,
+        dist = 90,
+        post = FriendPost(
+            kind    = PostKind.TEXT,
+            caption = "grabbed the last table at the new place. come through.",
+            place   = "Maika",
+        ),
+        status = FriendStatus.JUST_POSTED,
+    ),
+    FriendOffset(
+        id = "leo", mark = "L",
+        dLat = +0.0012, dLng = -0.0009,
+        dist = 148,
+        post = FriendPost(
+            kind     = PostKind.PHOTO,
+            caption  = "golden hour from the roof.",
+            place    = "Kale Fortress",
+            photoUrl = "https://picsum.photos/seed/leo/800/600",
+        ),
         status = FriendStatus.JUST_POSTED,
     ),
     FriendOffset(
@@ -61,11 +90,34 @@ private val SAMPLE_OFFSETS = listOf(
         status = FriendStatus.LIVE,
     ),
     FriendOffset(
-        id = "mira", mark = "M",
-        dLat = -0.0029, dLng = +0.0000,
-        dist = 320,
+        id = "zoe", mark = "Z",
+        dLat = -0.0014, dLng = -0.0012,
+        dist = 192,
         post   = null,
         status = FriendStatus.LIVE,
+    ),
+    FriendOffset(
+        id = "mira", mark = "M",
+        dLat = -0.0018, dLng = +0.0016,
+        dist = 243,
+        post = FriendPost(
+            kind    = PostKind.TEXT,
+            caption = "just saw something strange. ask me later.",
+            place   = null,
+        ),
+        status = FriendStatus.JUST_POSTED,
+    ),
+    FriendOffset(
+        id = "finn", mark = "F",
+        dLat = +0.0022, dLng = -0.0020,
+        dist = 299,
+        post = FriendPost(
+            kind     = PostKind.PHOTO,
+            caption  = "still here.",
+            place    = "Old Bazaar",
+            photoUrl = "https://picsum.photos/seed/finn/800/600",
+        ),
+        status = FriendStatus.JUST_POSTED,
     ),
     FriendOffset(
         id = "noa", mark = "N",

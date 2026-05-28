@@ -144,13 +144,6 @@ fun MapScreen(
         if (presenceOn && !friendsVisible) {
             EmptyStatePoem(modifier = Modifier.align(Alignment.Center))
         }
-
-        CompassRose(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 16.dp, bottom = 100.dp),
-        )
-
         // ── Bottom bar ────────────────────────────────────────────────────────
         Column(
             modifier = Modifier

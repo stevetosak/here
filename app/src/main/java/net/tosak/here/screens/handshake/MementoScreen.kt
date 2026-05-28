@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import net.tosak.here.screens.handshake.viewmodel.MementoData
 import net.tosak.here.screens.handshake.viewmodel.MementoViewModel
+import net.tosak.here.shared.components.BackButton
 import net.tosak.here.shared.components.Mono
 import net.tosak.here.shared.components.PxButton
 import net.tosak.here.shared.components.Rule
@@ -46,11 +47,15 @@ fun MementoScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(EmberBg)
-            .padding(horizontal = 28.dp),
+            .background(EmberBg),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(64.dp))
+        Row(modifier = Modifier.fillMaxWidth()) { BackButton() }
+        Column(
+            modifier            = Modifier.padding(horizontal = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+        Spacer(Modifier.height(40.dp))
 
         // ── Decorative mark ───────────────────────────────────────────────────
         CrossMark()
@@ -139,6 +144,7 @@ fun MementoScreen(
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(28.dp))
+        } // inner Column
     }
 }
 

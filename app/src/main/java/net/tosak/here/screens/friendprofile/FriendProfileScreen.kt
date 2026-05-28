@@ -45,7 +45,7 @@ fun FriendProfileScreen(
             modifier          = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BackButton(onClick = viewModel::onBack)
+            BackButton()
             Spacer(Modifier.weight(1f))
             Mono("PROFILE", size = 9.sp, color = EmberMuted, letterSpacing = 0.3.sp, modifier = Modifier.padding(end = 16.dp))
         }

@@ -40,7 +40,7 @@ fun SettingsScreen(
             modifier          = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BackButton(onClick = viewModel::onClose)
+            BackButton()
             Spacer(Modifier.weight(1f))
             Mono(
                 text          = "SETTINGS",

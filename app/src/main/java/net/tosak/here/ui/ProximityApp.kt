@@ -2,6 +2,7 @@ package net.tosak.here.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.imePadding
@@ -31,6 +32,7 @@ import net.tosak.here.screens.settings.SettingsScreen
 import net.tosak.here.screens.handshake.HandshakeScreen
 import net.tosak.here.screens.handshake.MementoScreen
 import net.tosak.here.screens.onboarding.OnboardingScreen
+import net.tosak.here.shared.components.LocalBackAction
 import net.tosak.here.shared.navigation.NavigationViewModel
 import net.tosak.here.shared.ping.PingShellViewModel
 import net.tosak.here.ui.theme.*
@@ -59,6 +61,9 @@ fun ProximityApp() {
             .background(EmberBg)
             .imePadding(),
     ) {
+        CompositionLocalProvider(
+            LocalBackAction provides if (nav.backStack.size > 1) nav::goBack else null,
+        ) {
         AnimatedContent(
             targetState  = nav.current,
             transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -103,7 +108,8 @@ fun ProximityApp() {
 
                 AppScreen.FRIEND_PROFILE -> FriendProfileScreen()
             }
-        }
+        } // AnimatedContent
+        } // CompositionLocalProvider
 
         // Incoming ping overlay — on top of everything, driven by PingEngine
         incomingPing?.let { ping ->

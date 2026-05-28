@@ -100,6 +100,9 @@ fun AmbientReadout() {
     Mono(text = AMBIENT_LINES[idx], size = 8.sp, color = EmberMuted, letterSpacing = 0.14.sp)
 }
 
+// ─── Navigation composition local ────────────────────────────────────────────
+val LocalBackAction = staticCompositionLocalOf<(() -> Unit)?> { null }
+
 // ─── HUD strip (top of every screen) ─────────────────────────────────────────
 @Composable
 fun HudStrip(
@@ -109,6 +112,7 @@ fun HudStrip(
     place: String = "Debar Maalo",
     coords: String = "41°59′N · 21°25′E",
 ) {
+    val backAction = LocalBackAction.current
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -117,14 +121,18 @@ fun HudStrip(
         verticalAlignment     = Alignment.Top,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            StatusChip(presenceOn)
-            if (!minimal) {
-                Mono(
-                    text          = place,
-                    size          = 8.sp,
-                    color         = EmberMuted,
-                    letterSpacing = 0.18.sp,
-                )
+            if (backAction != null) {
+                BackButton()
+            } else {
+                StatusChip(presenceOn)
+                if (!minimal) {
+                    Mono(
+                        text          = place,
+                        size          = 8.sp,
+                        color         = EmberMuted,
+                        letterSpacing = 0.18.sp,
+                    )
+                }
             }
         }
         Column(
@@ -172,16 +180,17 @@ fun Rule(
 // ─── Global back button (top-left of secondary screens) ──────────────────────
 @Composable
 fun BackButton(
-    onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
     label: String = "← BACK",
 ) {
+    val action = onClick ?: LocalBackAction.current ?: return
     Box(
         modifier = modifier
             .clickable(
                 indication        = null,
                 interactionSource = remember { MutableInteractionSource() },
-                onClick           = onClick,
+                onClick           = action,
             )
             .padding(horizontal = 14.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center,

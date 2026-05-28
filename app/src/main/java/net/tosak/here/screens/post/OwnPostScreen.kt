@@ -173,17 +173,15 @@ private fun OwnPostContent(
 
         // ── Footer ────────────────────────────────────────────────────────────
         Rule()
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(22.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            PxButton("← MAP", onClick = onClose)
             PxButton(
                 text     = "DELETE POST",
                 onClick  = onDelete,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }

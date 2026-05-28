@@ -88,6 +88,9 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 
+    // Coil — Compose image loading
+    implementation(libs.coil.compose)
+
     // CameraX — embedded preview + image capture
     implementation(libs.camerax.core)
     implementation(libs.camerax.camera2)

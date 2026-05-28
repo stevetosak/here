@@ -192,14 +192,6 @@ fun DmChatScreen(
             }
         }
 
-        // Bottom back
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 22.dp, vertical = 14.dp),
-        ) {
-            PxButton("← FRIENDS", onClick = viewModel::onBack)
-        }
         Spacer(Modifier.height(8.dp))
     }
 }
