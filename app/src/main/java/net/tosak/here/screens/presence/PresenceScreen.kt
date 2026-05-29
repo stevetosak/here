@@ -73,8 +73,6 @@ fun PresenceScreen(
             HoldGesture(onComplete = { viewModel.onActivated(!currentlyOn) })
         }
 
-        // Cancel
-        PxButton("CANCEL", onClick = viewModel::onCancel, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(28.dp))
     }
 }

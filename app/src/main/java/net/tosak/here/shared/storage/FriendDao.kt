@@ -14,4 +14,10 @@ interface FriendDao {
 
     @Query("SELECT * FROM friends ORDER BY addedAt DESC")
     fun observeAll(): Flow<List<FriendEntity>>
+
+    @Query("SELECT * FROM friends WHERE id = :id")
+    suspend fun byId(id: String): FriendEntity?
+
+    @Query("DELETE FROM friends WHERE id = :id")
+    suspend fun deleteById(id: String)
 }

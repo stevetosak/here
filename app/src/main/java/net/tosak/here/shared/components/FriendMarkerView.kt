@@ -19,28 +19,29 @@ import net.tosak.here.shared.model.PostKind
 import net.tosak.here.ui.theme.*
 
 /**
- * Callout-pin marker:
+ * Callout-pin marker. Two visual modes:
  *
- *   ┌──────────────────────────┐   ← EmberAccent border (JUST_POSTED)
- *   │  ⊡ · @ALEX · 47M        │     or EmberFg@65% (LIVE)
+ * Has post (JUST_POSTED):
+ *   ┌──────────────────────────┐   ← EmberAccent border
+ *   │  ⊡ · @ALEX · 47M        │
  *   └───────────┬──────────────┘
- *               │                 ← 1 dp stem
- *               ◉                 ← 7 dp pin dot; pulse ring when JUST_POSTED
+ *               │                 ← accent stem
+ *               ◉                 ← accent dot + pulse ring
  *
- * JUST_POSTED → full opacity, EmberAccent colour scheme.
- * LIVE        → 65% opacity, dim EmberFg colour scheme.
- *
- * The ViewAnnotation is CENTER-anchored on the map; the pin dot sits slightly
- * below the geo-coordinate. Changing the options to BOTTOM anchor would make
- * the dot align exactly — left as a TODO for when real map data lands.
+ * No post (LIVE):
+ *   ┌──────────────┐              ← dim EmberFg@40% border
+ *   │  @KRIS · 180M│
+ *   └──────┬───────┘
+ *           │                     ← dim stem
+ *           ◉                     ← dim dot, no pulse
  */
 @Composable
 fun FriendMarkerView(
     friend: Friend,
     onClick: () -> Unit,
 ) {
-    val isJustPosted = friend.status == FriendStatus.JUST_POSTED
-    val markerColor  = if (isJustPosted) EmberAccent else EmberFg.copy(alpha = 0.65f)
+    val hasPost     = friend.post != null
+    val markerColor = if (hasPost) EmberAccent else EmberFg.copy(alpha = 0.45f)
 
     val infiniteTransition = rememberInfiniteTransition(label = "friendPulse")
     val pulseProgress by infiniteTransition.animateFloat(
@@ -56,7 +57,7 @@ fun FriendMarkerView(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .alpha(if (isJustPosted) 1f else 0.70f)
+            .alpha(if (hasPost) 1f else 0.60f)
             .clickable(
                 indication        = null,
                 interactionSource = remember { MutableInteractionSource() },
@@ -75,11 +76,13 @@ fun FriendMarkerView(
                 verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
-                Mono(postGlyph(friend.post.kind), size = 9.sp, color = markerColor, letterSpacing = 0.sp)
-                Mono("·",                          size = 9.sp, color = EmberMuted,  letterSpacing = 0.sp)
-                Mono("@${friend.id}",              size = 9.sp, color = EmberFg,     letterSpacing = 0.12.sp)
-                Mono("·",                          size = 9.sp, color = EmberMuted,  letterSpacing = 0.sp)
-                Mono("${friend.dist}m",            size = 8.sp, color = EmberMuted,  letterSpacing = 0.10.sp)
+                if (hasPost) {
+                    Mono(postGlyph(friend.post!!.kind), size = 9.sp, color = markerColor, letterSpacing = 0.sp)
+                    Mono("·",                           size = 9.sp, color = EmberMuted,  letterSpacing = 0.sp)
+                }
+                Mono("@${friend.id}", size = 9.sp, color = EmberFg,    letterSpacing = 0.12.sp)
+                Mono("·",             size = 9.sp, color = EmberMuted,  letterSpacing = 0.sp)
+                Mono("${friend.dist}m", size = 8.sp, color = EmberMuted, letterSpacing = 0.10.sp)
             }
         }
 
@@ -94,9 +97,9 @@ fun FriendMarkerView(
         // ── Pin dot with optional pulse ring ─────────────────────────────────
         Box(
             contentAlignment = Alignment.Center,
-            modifier         = Modifier.size(28.dp),   // breathing room for ring
+            modifier         = Modifier.size(28.dp),
         ) {
-            if (isJustPosted) {
+            if (hasPost) {
                 val ringDp = (7 + 16 * pulseProgress).dp
                 Box(
                     modifier = Modifier
@@ -117,7 +120,7 @@ fun FriendMarkerView(
     }
 }
 
-/** Maps [PostKind] to a single monospace-safe glyph (uppercase-safe — symbols are unaffected). */
+/** Maps [PostKind] to a single monospace-safe glyph. */
 private fun postGlyph(kind: PostKind): String = when (kind) {
     PostKind.PHOTO -> "⊡"
     PostKind.TEXT  -> "≡"

@@ -87,14 +87,6 @@ fun FriendsListScreen(
             }
         }
 
-        // Bottom back
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 22.dp, vertical = 14.dp),
-        ) {
-            PxButton("← MAP", onClick = viewModel::onBack)
-        }
         Spacer(Modifier.height(8.dp))
     }
 }

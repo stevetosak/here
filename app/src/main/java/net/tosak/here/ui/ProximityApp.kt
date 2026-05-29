@@ -2,6 +2,7 @@ package net.tosak.here.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.imePadding
@@ -18,6 +19,7 @@ import net.tosak.here.shared.model.*
 import net.tosak.here.screens.chat.ChatScreen
 import net.tosak.here.screens.composer.ComposerScreen
 import net.tosak.here.screens.dm.DmChatScreen
+import net.tosak.here.screens.friendprofile.FriendProfileScreen
 import net.tosak.here.screens.friends.FriendsListScreen
 import net.tosak.here.screens.composer.components.PostPhotoScreen
 import net.tosak.here.screens.mapscreen.MapScreen
@@ -30,13 +32,16 @@ import net.tosak.here.screens.settings.SettingsScreen
 import net.tosak.here.screens.handshake.HandshakeScreen
 import net.tosak.here.screens.handshake.MementoScreen
 import net.tosak.here.screens.onboarding.OnboardingScreen
+import net.tosak.here.shared.components.LocalBackAction
 import net.tosak.here.shared.navigation.NavigationViewModel
+import net.tosak.here.shared.ping.PingShellViewModel
 import net.tosak.here.ui.theme.*
 
 @Composable
 fun ProximityApp() {
     val nav:             NavigationViewModel = hiltViewModel()
     val presenceViewModel: PresenceViewModel = hiltViewModel()
+    val pingShell:       PingShellViewModel = hiltViewModel()
 
     // ── Shell-level state ─────────────────────────────────────────────────────
     val activeFriend   by nav.activeFriend.collectAsStateWithLifecycle()
@@ -44,19 +49,10 @@ fun ProximityApp() {
     val pendingMemento by nav.pendingMemento.collectAsStateWithLifecycle()
     val presenceOn     by presenceViewModel.presenceOn.collectAsStateWithLifecycle()
     val toast          by nav.toast.collectAsStateWithLifecycle()
+    val incomingPing   by pingShell.incomingPing.collectAsStateWithLifecycle()
 
     // System back button — disabled at the root (MAP / ONBOARDING)
     BackHandler(enabled = nav.backStack.size > 1) { nav.goBack() }
-
-    // ── Demo scenario state ───────────────────────────────────────────────────
-    var scenario       by remember { mutableStateOf("cluster") }
-    val friendsVisible = scenario == "cluster" || scenario == "ping"
-    var showPing       by remember { mutableStateOf(false) }
-
-    LaunchedEffect(scenario, nav.current) {
-        if (scenario == "ping" && nav.current == AppScreen.MAP) showPing = true
-        else if (scenario != "ping") showPing = false
-    }
 
     Box(
         modifier = Modifier
@@ -65,6 +61,9 @@ fun ProximityApp() {
             .background(EmberBg)
             .imePadding(),
     ) {
+        CompositionLocalProvider(
+            LocalBackAction provides if (nav.backStack.size > 1) nav::goBack else null,
+        ) {
         AnimatedContent(
             targetState  = nav.current,
             transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -75,7 +74,7 @@ fun ProximityApp() {
 
                 AppScreen.MAP -> MapScreen(
                     presenceOn     = presenceOn,
-                    friendsVisible = friendsVisible,
+                    friendsVisible = presenceOn,
                 )
 
                 AppScreen.PRESENCE -> PresenceScreen()
@@ -106,18 +105,18 @@ fun ProximityApp() {
                 AppScreen.FRIENDS -> FriendsListScreen()
 
                 AppScreen.DM -> DmChatScreen()
-            }
-        }
 
-        // Ping overlay — on top of everything (demo only)
-        if (showPing && nav.current == AppScreen.MAP) {
+                AppScreen.FRIEND_PROFILE -> FriendProfileScreen()
+            }
+        } // AnimatedContent
+        } // CompositionLocalProvider
+
+        // Incoming ping overlay — on top of everything, driven by PingEngine
+        incomingPing?.let { ping ->
             PingOverlay(
-                friend    = sampleFriends[0],
-                onSee     = {
-                    showPing = false
-                    nav.navigate(AppScreen.POST)
-                },
-                onDismiss = { showPing = false },
+                incoming  = ping,
+                onOnMyWay = pingShell::onOnMyWay,
+                onIgnore  = pingShell::onIgnore,
             )
         }
 

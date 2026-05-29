@@ -98,6 +98,7 @@ fun InFrameCamera(
     // ── CameraX ────────────────────────────────────────────────────────────────
     val imageCapture = remember { ImageCapture.Builder().setTargetRotation(Surface.ROTATION_0).build() }
     val cameraProvider = remember { mutableStateOf<ProcessCameraProvider?>(null) }
+    val currentCameraSelector by rememberUpdatedState(cameraSelector)
 
     val orientationEventListener = object : OrientationEventListener(context) {
         override fun onOrientationChanged(orientation: Int) {
@@ -129,7 +130,7 @@ fun InFrameCamera(
                     override fun onImageSaved(out: ImageCapture.OutputFileResults) {
                         val rotated =
                             File(file.absolutePath)
-                                .toRotatedBitmap(cameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA)
+                                .toRotatedBitmap(currentCameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA)
                         if (rotated != null) {
                             FileOutputStream(file).use { out ->
                                 rotated.compress(Bitmap.CompressFormat.JPEG, 95, out)

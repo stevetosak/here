@@ -163,7 +163,7 @@ fun HandshakeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment     = Alignment.CenterVertically,
                 ) {
-                    BackButton(onClick = viewModel::onBack)
+                    BackButton()
                     Mono(
                         text          = "HANDSHAKE",
                         size          = 9.sp,

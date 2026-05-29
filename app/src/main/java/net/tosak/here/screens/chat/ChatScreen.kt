@@ -33,7 +33,7 @@ fun ChatScreen(
 ) {
     val initMessages = remember(friend, seedReply) {
         mutableStateListOf<ChatMessage>().apply {
-            add(ChatMessage("them", friend.post.caption, "21:43", meta = "post"))
+            if (friend.post != null) add(ChatMessage("them", friend.post.caption, "21:43", meta = "post"))
             if (seedReply != null) add(ChatMessage("you", seedReply, "21:46"))
         }
     }
@@ -166,14 +166,6 @@ fun ChatScreen(
             }
         }
 
-        // Bottom back
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 22.dp, vertical = 14.dp),
-        ) {
-            PxButton("← MAP", onClick = viewModel::onClose)
-        }
         Spacer(Modifier.height(8.dp))
     }
 }

@@ -13,10 +13,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import net.tosak.here.shared.model.Friend
 import net.tosak.here.shared.model.PostKind
 import net.tosak.here.shared.components.*
@@ -35,6 +37,8 @@ fun PostViewScreen(
             if (expMins > 0) expMins--
         }
     }
+
+    val post = friend.post ?: return
 
     Column(
         modifier = Modifier
@@ -76,42 +80,68 @@ fun PostViewScreen(
                 .padding(22.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            when (friend.post.kind) {
+            when (post.kind) {
                 PostKind.PHOTO -> {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(4f / 3f)
-                            .border(1.dp, EmberFg.copy(alpha = 0.33f))
-                            .drawBehind {
-                                val step = 16.dp.toPx()
-                                var x = -size.height
-                                while (x < size.width + size.height) {
-                                    drawLine(EmberFg.copy(alpha = 0.06f), Offset(x, 0f), Offset(x + size.height, size.height), 1f)
-                                    x += step
-                                }
-                            },
-                        contentAlignment = Alignment.Center,
+                            .border(1.dp, EmberFg.copy(alpha = 0.33f)),
                     ) {
-                        Mono("[PHOTO]", size = 9.sp, color = EmberMuted, letterSpacing = 0.3.sp)
-                        Mono("41°59′27″N · 21°25′41″E", size = 8.sp, color = EmberMuted,
-                            modifier = Modifier.align(Alignment.BottomStart).padding(8.dp))
+                        if (post.photoUrl != null) {
+                            AsyncImage(
+                                model            = post.photoUrl,
+                                contentDescription = null,
+                                contentScale     = ContentScale.Crop,
+                                modifier         = Modifier.fillMaxSize(),
+                            )
+                        } else {
+                            // Fallback hatching when no URL is available
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .drawBehind {
+                                        val step = 16.dp.toPx()
+                                        var x = -size.height
+                                        while (x < size.width + size.height) {
+                                            drawLine(EmberFg.copy(alpha = 0.06f), Offset(x, 0f), Offset(x + size.height, size.height), 1f)
+                                            x += step
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Mono("[PHOTO]", size = 9.sp, color = EmberMuted, letterSpacing = 0.3.sp)
+                            }
+                        }
+                        post.place?.let {
+                            Mono(
+                                "↳ ${it.uppercase()}",
+                                size     = 8.sp,
+                                color    = EmberFg.copy(alpha = 0.85f),
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .background(EmberBg.copy(alpha = 0.65f))
+                                    .padding(horizontal = 8.dp, vertical = 5.dp),
+                            )
+                        }
                     }
                 }
                 PostKind.TEXT -> {
                     Text(
-                        "\"${friend.post.caption}\"",
+                        "\"${post.caption}\"",
                         style = TextStyle(fontFamily = JetBrainsMono, fontSize = 22.sp, lineHeight = 30.sp, color = EmberFg),
                         modifier = Modifier.padding(vertical = 12.dp),
                     )
                 }
             }
 
-            if (friend.post.kind != PostKind.TEXT && friend.post.caption.isNotBlank()) {
-                Text(friend.post.caption, style = TextStyle(fontFamily = JetBrainsMono, fontSize = 13.sp, color = EmberFg, lineHeight = 20.sp))
+            if (post.kind == PostKind.PHOTO && post.caption.isNotBlank()) {
+                Text(post.caption, style = TextStyle(fontFamily = JetBrainsMono, fontSize = 13.sp, color = EmberFg, lineHeight = 20.sp))
             }
-            friend.post.place?.let {
-                Mono("↳ ${it.uppercase()}", size = 10.sp, color = EmberMuted, letterSpacing = 0.18.sp)
+            if (post.kind == PostKind.TEXT) {
+                post.place?.let {
+                    Mono("↳ ${it.uppercase()}", size = 10.sp, color = EmberMuted, letterSpacing = 0.18.sp)
+                }
             }
 
             Rule(dashed = true)
@@ -135,14 +165,12 @@ fun PostViewScreen(
         }
 
         Rule()
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(22.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            PxButton("← MAP", onClick = viewModel::onClose)
-            PxButton("OPEN THREAD →", onClick = { viewModel.onChat(null) }, modifier = Modifier.weight(1f), primary = true)
+            PxButton("OPEN THREAD →", onClick = { viewModel.onChat(null) }, modifier = Modifier.fillMaxWidth(), primary = true)
         }
     }
 }
