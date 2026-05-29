@@ -32,6 +32,7 @@ import net.tosak.here.screens.settings.SettingsScreen
 import net.tosak.here.screens.handshake.HandshakeScreen
 import net.tosak.here.screens.handshake.MementoScreen
 import net.tosak.here.screens.onboarding.OnboardingScreen
+import net.tosak.here.shared.components.LoadingOverlay
 import net.tosak.here.shared.components.LocalBackAction
 import net.tosak.here.shared.navigation.NavigationViewModel
 import net.tosak.here.shared.ping.PingShellViewModel
@@ -50,6 +51,7 @@ fun ProximityApp() {
     val presenceOn     by presenceViewModel.presenceOn.collectAsStateWithLifecycle()
     val toast          by nav.toast.collectAsStateWithLifecycle()
     val incomingPing   by pingShell.incomingPing.collectAsStateWithLifecycle()
+    val isLoading      by nav.isLoading.collectAsStateWithLifecycle()
 
     // System back button — disabled at the root (MAP / ONBOARDING)
     BackHandler(enabled = nav.backStack.size > 1) { nav.goBack() }
@@ -119,6 +121,9 @@ fun ProximityApp() {
                 onIgnore  = pingShell::onIgnore,
             )
         }
+
+        // Global loading overlay — blocks all input while visible
+        LoadingOverlay(visible = isLoading)
 
         // Toast banner — driven by Event.Toast via NavigationViewModel
         AnimatedVisibility(

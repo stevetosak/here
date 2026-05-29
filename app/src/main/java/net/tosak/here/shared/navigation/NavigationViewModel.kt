@@ -61,6 +61,11 @@ class NavigationViewModel @Inject constructor(
     /** Non-null while a toast banner should be visible. Auto-clears after 2.2 s. */
     val toast: StateFlow<String?> = _toast.asStateFlow()
 
+    // ── Loading overlay ───────────────────────────────────────────────────────
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     // ── Event subscriptions ───────────────────────────────────────────────────
 
     init {
@@ -86,16 +91,25 @@ class NavigationViewModel @Inject constructor(
                 }
         }
 
+        // Drive the global loading overlay.
+        viewModelScope.launch {
+            eventBus.events
+                .filterIsInstance<Event.Loading>()
+                .collect { event -> _isLoading.value = event is Event.Loading.Show }
+        }
+
         // Handle navigation events emitted by any screen VM.
         viewModelScope.launch {
             eventBus.events
                 .filterIsInstance<Event.Nav>()
                 .collect { event ->
                     when (event) {
-                        is Event.Nav.GoBack     -> goBack()
-                        is Event.Nav.NavigateTo -> navigate(event.screen)
-                        is Event.Nav.Reset      -> reset(event.screen)
-                        is Event.Nav.ReplaceTop -> replaceTop(event.screen)
+                        is Event.Nav.GoBack             -> goBack()
+                        is Event.Nav.NavigateTo         -> navigate(event.screen)
+                        is Event.Nav.Reset              -> reset(event.screen)
+                        is Event.Nav.ReplaceTop         -> replaceTop(event.screen)
+                        is Event.Nav.AppendMultiple     -> appendMultiple(event.screens)
+                        is Event.Nav.ReplaceTopAndAppend -> replaceTopAndAppend(event.screens)
                     }
                 }
         }
@@ -112,6 +126,15 @@ class NavigationViewModel @Inject constructor(
     fun replaceTop(screen: AppScreen) {
         if (backStack.isNotEmpty()) backStack.removeAt(backStack.lastIndex)
         backStack.add(screen)
+    }
+
+    fun appendMultiple(screens: List<AppScreen>) {
+        backStack.addAll(screens)
+    }
+
+    fun replaceTopAndAppend(screens: List<AppScreen>) {
+        if (backStack.isNotEmpty()) backStack.removeAt(backStack.lastIndex)
+        backStack.addAll(screens)
     }
 
     fun reset(screen: AppScreen) {

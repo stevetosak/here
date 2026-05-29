@@ -16,6 +16,10 @@ sealed interface Event {
         data class Reset(val screen: AppScreen) : Nav
         /** Replace the top stack entry without leaving a back entry behind. */
         data class ReplaceTop(val screen: AppScreen) : Nav
+        /** Appends multiple screens to the backStack. The last appended screen will be the one displayed */
+        data class AppendMultiple(val screens: List<AppScreen>) : Nav
+        /** Replaces the current top entry, then appends the remaining screens. */
+        data class ReplaceTopAndAppend(val screens: List<AppScreen>) : Nav
     }
 
     sealed interface Toast : Event {
@@ -39,6 +43,11 @@ sealed interface Event {
         data class ActiveFriendChanged(val friend: Friend) : AppState
         data class ChatSeedChanged(val seed: String?) : AppState
         data class PendingMementoChanged(val memento: MementoData?) : AppState
+    }
+
+    sealed interface Loading : Event {
+        data object Show : Loading
+        data object Hide : Loading
     }
 
     /** Incoming pings (auto or manual) the receiver should be notified about. */
