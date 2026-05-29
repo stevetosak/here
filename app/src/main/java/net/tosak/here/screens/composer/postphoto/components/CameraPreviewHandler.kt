@@ -1,4 +1,4 @@
-package net.tosak.here.screens.composer.components
+package net.tosak.here.screens.composer.postphoto.components
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -12,7 +12,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
@@ -34,13 +33,13 @@ import androidx.core.view.setPadding
 import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.flow.Flow
-import net.tosak.here.screens.composer.camera.setupTapToFocus
-import net.tosak.here.screens.composer.camera.setupZoom
-import net.tosak.here.screens.composer.camera.toRotatedBitmap
+import net.tosak.here.screens.composer.postphoto.camera.setupFlash
+import net.tosak.here.screens.composer.postphoto.camera.setupTapToFocus
+import net.tosak.here.screens.composer.postphoto.camera.setupZoom
+import net.tosak.here.screens.composer.postphoto.camera.toRotatedBitmap
 import net.tosak.here.shared.components.Mono
 import net.tosak.here.ui.theme.EmberAccent
 import net.tosak.here.ui.theme.EmberBorder
-import net.tosak.here.ui.theme.EmberFg
 import net.tosak.here.ui.theme.EmberMuted
 import java.io.File
 import java.io.FileOutputStream
@@ -78,6 +77,7 @@ fun InFrameCamera(
     onCaptureFailed: () -> Unit,
     scaleType: PreviewView.ScaleType = PreviewView.ScaleType.FILL_CENTER,
     cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA,
+    flashEnabled: Boolean
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -150,6 +150,13 @@ fun InFrameCamera(
         }
     }
 
+    LaunchedEffect(flashEnabled) {
+        cameraState.value?.let { setupFlash(it, flashEnabled) }
+    }
+    LaunchedEffect(cameraSelector) {
+        cameraState.value = null;
+    }
+
     // Release the camera when this composable leaves the tree.
     DisposableEffect(lifecycleOwner) {
         onDispose { cameraProvider.value?.unbindAll() }
@@ -178,30 +185,34 @@ fun InFrameCamera(
                         }
                     },
                     update = { previewView ->
-                        cameraProviderFuture.addListener({
-                            val provider = cameraProviderFuture.get()
-                            cameraProvider.value = provider
-                            val preview = Preview.Builder().build()
-                                .also { it.setSurfaceProvider(previewView.surfaceProvider) }
+                        if (cameraState.value == null) {
+                            cameraProviderFuture.addListener({
+                                val provider = cameraProviderFuture.get()
+                                cameraProvider.value = provider
+                                val preview = Preview.Builder().build()
+                                    .also { it.setSurfaceProvider(previewView.surfaceProvider) }
 
-                            try {
-                                provider.unbindAll()
-                                val camera = provider.bindToLifecycle(
-                                    lifecycleOwner,
-                                    cameraSelector,
-                                    preview,
-                                    imageCapture,
-                                )
-                                cameraState.value = camera
-                                setupTapToFocus(previewView = previewView, camera = camera)
-                                setupZoom(
-                                    context = context,
-                                    previewView = previewView,
-                                    camera = camera
-                                )
-                            } catch (_: Exception) { /* camera unavailable on this device */
-                            }
-                        }, ContextCompat.getMainExecutor(context))
+                                try {
+                                    provider.unbindAll()
+                                    val camera = provider.bindToLifecycle(
+                                        lifecycleOwner,
+                                        cameraSelector,
+                                        preview,
+                                        imageCapture,
+                                    )
+                                    setupFlash(camera = camera, flashEnabled = flashEnabled)
+                                    setupTapToFocus(previewView = previewView, camera = camera)
+                                    setupZoom(
+                                        context = context,
+                                        previewView = previewView,
+                                        camera = camera
+                                    )
+
+                                    cameraState.value = camera
+                                } catch (_: Exception) { /* camera unavailable on this device */
+                                }
+                            }, ContextCompat.getMainExecutor(context))
+                        }
                     }
                 )
             }

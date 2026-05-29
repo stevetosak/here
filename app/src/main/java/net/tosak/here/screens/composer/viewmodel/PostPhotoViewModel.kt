@@ -17,6 +17,14 @@ import net.tosak.here.shared.model.PostKind
 import net.tosak.here.shared.storage.PostRepository
 import javax.inject.Inject
 
+
+sealed interface PostPhotoUiState{
+    data object Preview: PostPhotoUiState
+    data object Capturing: PostPhotoUiState
+    data object Captured: PostPhotoUiState
+}
+
+
 @HiltViewModel
 class PostPhotoViewModel @Inject constructor(
     private val postRepository: PostRepository,
@@ -41,6 +49,8 @@ class PostPhotoViewModel @Inject constructor(
     private val _currentCameraSelector = MutableStateFlow(CameraSelector.DEFAULT_BACK_CAMERA)
     val currentCameraSelector = _currentCameraSelector.asStateFlow()
 
+    private val _flashEnabled = MutableStateFlow(false)
+    val flashEnabled = _flashEnabled.asStateFlow();
 
     fun switchCamera(){
         if(currentCameraSelector.value == CameraSelector.DEFAULT_BACK_CAMERA){
@@ -48,6 +58,10 @@ class PostPhotoViewModel @Inject constructor(
         } else {
             _currentCameraSelector.value = CameraSelector.DEFAULT_BACK_CAMERA
         }
+    }
+
+    fun toggleFlash(){
+        _flashEnabled.value = !flashEnabled.value
     }
 
     fun onCaptionChanged(value: String) { _caption.value = value }

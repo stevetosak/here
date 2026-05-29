@@ -1,4 +1,4 @@
-package net.tosak.here.screens.composer.camera
+package net.tosak.here.screens.composer.postphoto.camera
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -9,8 +9,6 @@ import android.view.ScaleGestureDetector
 import androidx.camera.core.Camera
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.view.PreviewView
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.exifinterface.media.ExifInterface
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -85,5 +83,11 @@ fun setupZoom(context: Context,previewView: PreviewView,camera: Camera){
         }
         view.performClick()
         true
+    }
+}
+
+fun setupFlash(camera:Camera,flashEnabled: Boolean){
+    if(camera.cameraInfo.hasFlashUnit()){
+        camera.cameraControl.enableTorch(flashEnabled)
     }
 }

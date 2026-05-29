@@ -21,7 +21,7 @@ import net.tosak.here.screens.composer.ComposerScreen
 import net.tosak.here.screens.dm.DmChatScreen
 import net.tosak.here.screens.friendprofile.FriendProfileScreen
 import net.tosak.here.screens.friends.FriendsListScreen
-import net.tosak.here.screens.composer.components.PostPhotoScreen
+import net.tosak.here.screens.composer.postphoto.PostPhotoScreen
 import net.tosak.here.screens.mapscreen.MapScreen
 import net.tosak.here.screens.ping.PingOverlay
 import net.tosak.here.screens.post.OwnPostScreen
