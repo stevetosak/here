@@ -8,10 +8,15 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import androidx.camera.core.Camera
 import androidx.camera.core.FocusMeteringAction
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 import androidx.camera.view.PreviewView
 import androidx.exifinterface.media.ExifInterface
 import java.io.File
+import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 fun File.toRotatedBitmap(forceFlipHorizontal: Boolean = false): Bitmap? {
     val exif = ExifInterface(absolutePath)
@@ -86,8 +91,20 @@ fun setupZoom(context: Context,previewView: PreviewView,camera: Camera){
     }
 }
 
-fun setupFlash(camera:Camera,flashEnabled: Boolean){
-    if(camera.cameraInfo.hasFlashUnit()){
+fun setupFlash(camera: Camera, flashEnabled: Boolean) {
+    if (camera.cameraInfo.hasFlashUnit()) {
         camera.cameraControl.enableTorch(flashEnabled)
     }
 }
+
+suspend fun ImageCapture.awaitPicture(executor: Executor, file: File): File? =
+    suspendCancellableCoroutine { cont ->
+        val opts = ImageCapture.OutputFileOptions.Builder(file).build()
+        takePicture(opts, executor, object : ImageCapture.OnImageSavedCallback {
+            override fun onImageSaved(out: ImageCapture.OutputFileResults) = cont.resume(file)
+            override fun onError(e: ImageCaptureException) {
+                file.delete()
+                cont.resume(null)
+            }
+        })
+    }

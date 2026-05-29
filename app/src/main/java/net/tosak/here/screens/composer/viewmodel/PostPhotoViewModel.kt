@@ -1,9 +1,12 @@
 package net.tosak.here.screens.composer.viewmodel
 
 import android.R.attr.path
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -12,8 +15,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,6 +32,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.tosak.here.screens.composer.postphoto.camera.toRotatedBitmap
 import net.tosak.here.screens.composer.postphoto.components.controls.CaptureControls
 import net.tosak.here.screens.composer.postphoto.components.controls.PostButton
 import net.tosak.here.shared.events.Event
@@ -35,6 +41,8 @@ import net.tosak.here.shared.location.LocationRepository
 import net.tosak.here.shared.model.AppScreen
 import net.tosak.here.shared.model.PostKind
 import net.tosak.here.shared.storage.PostRepository
+import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 
 
@@ -133,6 +141,7 @@ class PostPhotoViewModel @Inject constructor(
         _capturedImagePath.value = null
         _isCapturing.value = false
     }
+
 
     override fun submit() {
         val loc = locationRepository.lastLocation.value
